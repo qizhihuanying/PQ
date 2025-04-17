@@ -13,12 +13,8 @@ class PQHead(nn.Module):
         self.use_pq = use_pq
 
         assert input_dim % num_subvectors == 0, f"Input dimension {input_dim} must be divisible by number of subvectors {num_subvectors}"
-        
         self.subvector_dim = input_dim // num_subvectors
-        
-        # Trainable codebooks for each subspace [num_subvectors, code_size, subvector_dim]
         self.codebooks = nn.Parameter(torch.randn(num_subvectors, code_size, self.subvector_dim))
-        # Initialize codebooks
         nn.init.normal_(self.codebooks, mean=0.0, std=0.01)
 
     def forward(self, x):
@@ -28,32 +24,24 @@ class PQHead(nn.Module):
             if not x.requires_grad:
                 x = x.detach().clone().requires_grad_(True)
             return x
-            
-        # Split input into subvectors [batch_size, num_subvectors, subvector_dim]
+
         subvectors = x.reshape(batch_size, self.num_subvectors, self.subvector_dim)
         
         # Compute dot products [batch_size, num_subvectors, code_size]
-        dot_products = torch.sum(
-            subvectors.unsqueeze(2) * self.codebooks.unsqueeze(0),
-            dim=-1
-        )
+        dot_products = torch.sum(subvectors.unsqueeze(2) * self.codebooks.unsqueeze(0), dim=-1)
         
         if self.training:
-            # During training, implement soft and discrete quantization
-            
             # Compute soft assignment [batch_size, num_subvectors, code_size]
-            soft_assignment = F.softmax(dot_products, dim=2)  # Higher dot product -> higher probability
+            soft_assignment = F.softmax(dot_products, dim=2)
             
             # Compute soft quantized subvectors [batch_size, num_subvectors, subvector_dim]
             soft_quantized_subvectors = torch.einsum('bmk,mkd->bmd', soft_assignment, self.codebooks)
             
             # Compute discrete indices [batch_size, num_subvectors]
-            indices = torch.argmax(dot_products, dim=2)  # Select index with maximum dot product
-            # Compute discrete quantized subvectors
+            indices = torch.argmax(dot_products, dim=2)  
             subvec_indices = torch.arange(self.num_subvectors, device=x.device).view(1, -1).repeat(batch_size, 1) # [batch_size, num_subvectors]
             discrete_quantized_subvectors = self.codebooks[subvec_indices, indices, :] # [batch_size, num_subvectors, subvector_dim]
-            
-            # Apply gradient trick: output discrete but gradients from soft
+
             quantized_subvectors = soft_quantized_subvectors - (soft_quantized_subvectors - discrete_quantized_subvectors).detach()
             
             # Reshape to [batch_size, input_dim]

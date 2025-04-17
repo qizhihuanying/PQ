@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument("--val_ratio", type=float, default=0.2, help="验证集比例")
     parser.add_argument("--test_ratio", type=float, default=1.0, help="测试集比例")
     parser.add_argument("--base_trainable_layers", type=int, default=0, help="基础模型可训练层数")
-    parser.add_argument("--use_pq", action="store_true", default=False, help="是否使用PQ量化")
+    parser.add_argument("--use_pq", action="store_true", default=True, help="是否使用PQ量化")
     parser.add_argument("--input_dim", type=int, default=768, help="输入维度")
     parser.add_argument("--num_subvectors", type=int, default=128, help="子向量数量")
     parser.add_argument("--code_size", type=int, default=32, help="码本大小")
