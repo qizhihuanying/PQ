@@ -10,6 +10,7 @@ import pandas as pd
 import os
 
 from product_quantization import PQHead
+from utils.ndcg_utils import calculate_ndcg10
 
 class MultiModelTrainer:
     def __init__(
@@ -25,20 +26,50 @@ class MultiModelTrainer:
         input_dim: int = 768,
         num_subvectors: int = 8,
         code_size: int = 256,
+        init_pq_path: str = "",
         logger = None
     ):
         self.models = models
         self.tokenizers = tokenizers
         self.embedding_funcs = embedding_funcs
         self.device = device
+        self.logger = logger
+        
+        # 初始化码本参数
+        init_codebooks = None
+        
+        # 尝试从预训练路径加载码本
+        if init_pq_path and os.path.exists(init_pq_path):
+            self.logger.info(f"从路径加载预初始化的PQ头: {init_pq_path}") if self.logger else print(f"从路径加载预初始化的PQ头: {init_pq_path}")
+            try:
+                state = torch.load(init_pq_path, map_location=device)
+                
+                # 检查参数是否匹配
+                if (state['input_dim'] != input_dim or 
+                    state['num_subvectors'] != num_subvectors or 
+                    state['code_size'] != code_size):
+                    msg = f"参数不匹配: 预训练({state['input_dim']},{state['num_subvectors']},{state['code_size']}) vs 当前({input_dim},{num_subvectors},{code_size})"
+                    self.logger.warning(msg) if self.logger else print(msg)
+                
+                init_codebooks = state['codebooks']
+                self.logger.info("成功加载预训练码本") if self.logger else print("成功加载预训练码本")
+            except Exception as e:
+                msg = f"加载预训练PQ头失败: {e}"
+                self.logger.error(msg) if self.logger else print(msg)
+        else:
+            msg = "采用随机初始化PQ头参数"
+            self.logger.info(msg) if self.logger else print(msg)
+        
+        # 创建PQ头
         self.pq_head = PQHead(
             input_dim=input_dim,
             num_subvectors=num_subvectors,
             code_size=code_size,
-            use_pq=use_pq
+            use_pq=use_pq,
+            init_codebooks=init_codebooks
         ).to(device)
+        
         self.cos_criterion = nn.CosineEmbeddingLoss()
-        self.logger = logger
         
         # 设置模型训练参数
         if num_trainable_layers > 0:
@@ -97,7 +128,7 @@ class MultiModelTrainer:
         # 训练一个epoch
         total_loss = 0.0
         num_batches = max(int(len(data) / batch_size + 0.99), 1)
-        data_shuffled = data.sample(frac=1, random_state=42)
+        data_shuffled = data.sample(frac=1)
 
         for i in tqdm(range(num_batches), desc="训练中"):
             batch = data_shuffled[i * batch_size : (i + 1) * batch_size]
@@ -162,185 +193,20 @@ class MultiModelTrainer:
         return total_loss / num_batches
         
     def calculate_ndcg10(self, data: pd.DataFrame) -> dict:
+        # 创建一个包装函数，以满足ndcg_utils接口要求
+        def get_embeddings_wrapper(texts, model_idx):
+            return self.get_embeddings(texts, model_idx)
         
-        self.pq_head.eval()
-        for model in self.models:
-            model.eval()
-
-        results = {}
-
-        # 如果有 lang 列，就按语言区分，否则统一当做 'all'
-        if 'lang' in data.columns:
-            languages = data['lang'].unique()
-        else:
-            languages = ['all']
-            data['lang'] = 'all'
-
-        for lang in languages:
-            lang_data = data[data['lang'] == lang]
-            results[lang] = {}
-
-            # 模型数量（本地模型 + embedding_funcs）
-            total_model_count = len(self.models) + len(self.embedding_funcs)
-
-            for model_idx in range(total_model_count):
-                model_name = f"model_{model_idx}"
-                self.logger.info(f"开始计算 {lang} 语言模型 {model_idx} 的NDCG@10")
-                
-                # 收集所有唯一的查询和文档
-                queries = {}         # 查询ID -> 查询文本
-                documents = {}       # 文档ID -> 文档文本
-                qrels = {}           # 查询ID -> {文档ID: 相关性}
-                
-                # 1. 首先收集所有唯一的查询和标注的文档关系
-                for _, row in tqdm(lang_data.iterrows(), desc="收集查询和标注数据", total=len(lang_data)):
-                    query_id = row['query_id']
-                    doc_id = row['doc_id']
-                    query_text = row['sample1']
-                    doc_text = row['sample2']
-                    relevance = row['relevance']
-                    
-                    queries[query_id] = query_text
-                    documents[doc_id] = doc_text
-                    
-                    if query_id not in qrels:
-                        qrels[query_id] = {}
-                    qrels[query_id][doc_id] = relevance
-                
-                # 2. 收集语料库中所有文档（这里我们使用已有数据集中的所有文档作为语料库）
-                # 在实际应用中，你可能需要加载完整的语料库文件
-                corpus_docs = documents  # 使用已有的所有文档作为语料库
-                
-                self.logger.info(f"收集到 {len(queries)} 个唯一查询和 {len(corpus_docs)} 个语料库文档")
-                
-                # 批量计算所有查询的embedding
-                query_embeddings = {}  # 查询ID -> embedding
-                batch_size = 32  # 可以根据GPU内存调整
-                
-                # 将查询ID和文本转换为列表，以便批处理
-                query_ids = list(queries.keys())
-                query_texts = [queries[qid] for qid in query_ids]
-                
-                # 批量计算查询embedding
-                for i in tqdm(range(0, len(query_texts), batch_size), desc="计算查询embedding"):
-                    batch_texts = query_texts[i:i+batch_size]
-                    batch_ids = query_ids[i:i+batch_size]
-                    
-                    with torch.no_grad():
-                        batch_embs = self.get_embeddings(batch_texts, model_idx)
-                        if self.pq_head.use_pq:
-                            batch_embs = self.pq_head(batch_embs)
-                    
-                    # 将embedding保存到字典中
-                    for j, qid in enumerate(batch_ids):
-                        query_embeddings[qid] = batch_embs[j:j+1]
-                
-                # 批量计算所有语料库文档的embedding
-                corpus_embeddings = {}  # 文档ID -> embedding
-                
-                # 将文档ID和文本转换为列表，以便批处理
-                corpus_doc_ids = list(corpus_docs.keys())
-                corpus_doc_texts = [corpus_docs[did] for did in corpus_doc_ids]
-                
-                # 批量计算文档embedding
-                for i in tqdm(range(0, len(corpus_doc_texts), batch_size), desc="计算语料库文档embedding"):
-                    batch_texts = corpus_doc_texts[i:i+batch_size]
-                    batch_ids = corpus_doc_ids[i:i+batch_size]
-                    
-                    with torch.no_grad():
-                        batch_embs = self.get_embeddings(batch_texts, model_idx)
-                        if self.pq_head.use_pq:
-                            batch_embs = self.pq_head(batch_embs)
-                    
-                    # 将embedding保存到字典中
-                    for j, did in enumerate(batch_ids):
-                        corpus_embeddings[did] = batch_embs[j:j+1]
-                
-                # 计算每个查询的NDCG@10
-                ndcg_list = []
-                
-                for query_id in tqdm(queries.keys(), desc="计算NDCG@10"):
-                    if query_id not in query_embeddings:
-                        self.logger.info(f"警告: 查询 {query_id} 没有embedding")
-                        continue
-                    
-                    query_emb = query_embeddings[query_id]
-                    
-                    # 计算查询与语料库中每个文档的相似度
-                    doc_similarities = []  # [(doc_id, similarity), ...]
-                    
-                    for doc_id, doc_emb in corpus_embeddings.items():
-                        if self.pq_head.use_pq:
-                            # 使用余弦相似度计算PQ向量之间的相似度
-                            sim = torch.nn.functional.cosine_similarity(query_emb, doc_emb).item()
-                        else:
-                            # 非量化向量使用余弦相似度
-                            sim = torch.nn.functional.cosine_similarity(query_emb, doc_emb).item()
-                        doc_similarities.append((doc_id, sim))
-                    
-                    # 按相似度降序排序，当相似度相等时，使用相关性作为第二排序键
-                    doc_similarities.sort(key=lambda x: (x[1], qrels.get(query_id, {}).get(x[0], 0)), reverse=True)
-                    
-                    # 取前K个进行评估
-                    k = 10
-                    
-                    # 构建真实相关性列表（对所有文档，未标注的文档相关性为0）
-                    y_true = []
-                    y_score = []
-                    for doc_id, sim in doc_similarities:
-                        relevance = qrels.get(query_id, {}).get(doc_id, 0)
-                        y_true.append(relevance)
-                        y_score.append(sim)
-                    
-                    # 计算NDCG@10
-                    try:
-                        k = min(k, len(y_true))
-                        # 计算DCG
-                        dcg = 0
-                        for i in range(k):
-                            dcg += y_true[i] / np.log2(i + 2) 
-                        
-                        # 计算IDCG
-                        ideal_relevance = sorted(y_true, reverse=True)
-                        idcg = 0
-                        for i in range(k):
-                            if i < len(ideal_relevance):
-                                idcg += ideal_relevance[i] / np.log2(i + 2)
-                        
-                        # 计算NDCG
-                        ndcg_val = dcg / idcg if idcg > 0 else 0.0
-                        ndcg_list.append(ndcg_val)
-                        
-                        # 打印一些样本的详细信息以便调试
-                        if len(ndcg_list) <= 1:  # 只打印前1个查询的详细信息
-                            self.logger.info(f"查询ID: {query_id}")
-                            self.logger.info(f"查询文本: {queries[query_id]}")
-                            self.logger.info(f"Top {k} 结果:")
-                            for i, (doc_id, sim) in enumerate(doc_similarities[:k]):
-                                relevance = qrels.get(query_id, {}).get(doc_id, 0)
-                                doc_snippet = corpus_docs[doc_id][:50] + "..." if len(corpus_docs[doc_id]) > 50 else corpus_docs[doc_id]
-                                self.logger.info(f"  {i+1}. 文档ID: {doc_id}, 相关性: {relevance}, 相似度: {sim:.4f}")
-                                self.logger.info(f"     文档片段: {doc_snippet}")
-                            self.logger.info(f"NDCG@{k}: {ndcg_val:.4f}")
-                        
-                    except Exception as e:
-                        self.logger.info(f"查询 {query_id} 计算NDCG出错: {e}")
-                        continue
-                
-                # 计算该模型在当前语言上的平均NDCG@10
-                if ndcg_list:
-                    avg_ndcg = float(np.mean(ndcg_list))
-                    results[lang][model_name] = avg_ndcg
-                    self.logger.info(f"{lang} 语言模型 {model_idx} 的平均NDCG@10: {avg_ndcg:.4f}")
-                else:
-                    results[lang][model_name] = 0.0
-                    self.logger.info(f"{lang} 语言模型 {model_idx} 没有有效的NDCG@10结果")
-
-        return results
-
-    def evaluate_retrieval(self, data: pd.DataFrame, batch_size: int) -> Dict[str, Dict[str, float]]:
-        """评估检索性能"""
-        return self.calculate_ndcg10(data)
+        # 添加模型总数属性，以便ndcg_utils识别
+        get_embeddings_wrapper.total_model_count = len(self.models) + len(self.embedding_funcs)
+        
+        # 调用工具函数计算NDCG@10
+        return calculate_ndcg10(
+            data=data,
+            get_embeddings=get_embeddings_wrapper,
+            pq_head=self.pq_head,
+            logger=self.logger
+        )
 
     def train_pq_head(self, train_data, val_data, test_data, epochs, batch_size, output_dir):
         """训练PQ量化模型"""
@@ -349,13 +215,17 @@ class MultiModelTrainer:
             if self.logger:
                 self.logger.info("训练集为空，跳过训练")
             if test_data is not None and len(test_data) > 0:
-                return self.evaluate_retrieval(test_data, batch_size)
-            return {}
+                # 只记录NDCG@10到日志，不返回结果
+                ndcg_results = self.calculate_ndcg10(test_data)
+                if self.logger:
+                    self.logger.info(f"测试集NDCG@10评估: {ndcg_results}")
+            return
         
-        # 创建输出目录
+        # 创建输出目录仅用于保存模型
         os.makedirs(output_dir, exist_ok=True)
         best_loss = float('inf')
         best_epoch = -1
+        self.logger.info(f"训练设置：use_pq={self.pq_head.use_pq}, training={self.pq_head.training}")
         
         # 训练循环
         for epoch in range(epochs):
@@ -389,13 +259,19 @@ class MultiModelTrainer:
         if best_epoch == -1:
             self.pq_head.save_model(output_dir)
         
-        # 评估测试集
         if test_data is not None and len(test_data) > 0:
-            eval_results = self.evaluate_retrieval(test_data, batch_size)
-            if self.logger:
-                self.logger.info(f"最终评估结果: {eval_results}")
-            return eval_results
-        return {}
+            self.logger.info("重新加载最佳模型进行评估...")
+            original_use_pq = self.pq_head.use_pq
+            self.pq_head = PQHead.load_model(
+                f"{output_dir}/pq_head_best.pt",
+                self.device
+            )
+            self.pq_head.use_pq = original_use_pq
+            self.pq_head.train(False)  # 设置为评估模式
+            self.logger.info(f"评估设置：use_pq={self.pq_head.use_pq}, training={self.pq_head.training}")
+                
+            ndcg_results = self.calculate_ndcg10(test_data)
+            self.logger.info(f"最终NDCG@10评估: {ndcg_results}")
 
 def train(
     models: List[nn.Module],
@@ -415,6 +291,7 @@ def train(
     input_dim: int = 768,
     num_subvectors: int = 8,
     code_size: int = 256,
+    init_pq_path: str = "",
     logger = None
 ):
     """训练主函数"""
@@ -433,10 +310,11 @@ def train(
         input_dim=input_dim,
         num_subvectors=num_subvectors,
         code_size=code_size,
+        init_pq_path=init_pq_path,
         logger=logger
     )
     
-    results = trainer.train_pq_head(
+    trainer.train_pq_head(
         train_data=train_data,
         val_data=val_data,
         test_data=test_data,
@@ -444,6 +322,4 @@ def train(
         batch_size=batch_size,
         output_dir=output_dir
     )
-    
-    return results, trainer.pq_head
-        
+

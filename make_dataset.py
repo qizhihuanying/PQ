@@ -345,7 +345,7 @@ def load_train_dev_data(lang: str, train_sample_ratio: float = 1.0) -> Tuple[pd.
     # 从训练集中采样(如果比例小于1)
     if train_sample_ratio < 1.0:
         train_size = max(1, int(len(full_train_data) * train_sample_ratio))
-        train_data = full_train_data.sample(n=train_size, random_state=42)
+        train_data = full_train_data.sample(n=train_size)
     else:
         train_data = full_train_data
     

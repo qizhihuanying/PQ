@@ -6,7 +6,7 @@ mkdir logs\dbq_base 2>nul
 
 REM 基础参数
 set LOG_DIR=logs/dpq_base
-set BASE_ARGS=--use_pq --log_dir %LOG_DIR%
+set BASE_ARGS=--use_pq --log_dir %LOG_DIR% 
 
 set PYTHON_PATH="C:\Users\QZHYc\Anaconda3\envs\bge\python.exe"
 if not exist %PYTHON_PATH% set PYTHON_PATH="C:\Users\QZHYc\Anaconda3\python.exe"
@@ -43,8 +43,8 @@ REM num_subvectors=16的组合
 @REM %PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 128 --code_size 256 --log_file sv128_cs256.log
 
 REM num_subvectors=256的组合
-%PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 256 --log_file sv256_cs256.log
-%PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 128 --log_file sv256_cs128.log
+@REM %PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 256 --log_file sv256_cs256.log
+@REM %PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 128 --log_file sv256_cs128.log
 @REM %PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 64 --log_file sv256_cs64.log
 %PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 32 --log_file sv256_cs32.log
 @REM %PYTHON_PATH% main.py %BASE_ARGS% --num_subvectors 256 --code_size 16 --log_file sv256_cs16.log

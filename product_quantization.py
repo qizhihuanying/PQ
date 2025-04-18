@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class PQHead(nn.Module):
-    def __init__(self, input_dim=768, num_subvectors=128, code_size=32, use_pq=True):
+    def __init__(self, input_dim=768, num_subvectors=128, code_size=32, use_pq=True, init_codebooks=None):
         super().__init__()
         self.input_dim = input_dim
         self.num_subvectors = num_subvectors
@@ -15,7 +15,15 @@ class PQHead(nn.Module):
         assert input_dim % num_subvectors == 0, f"Input dimension {input_dim} must be divisible by number of subvectors {num_subvectors}"
         self.subvector_dim = input_dim // num_subvectors
         self.codebooks = nn.Parameter(torch.randn(num_subvectors, code_size, self.subvector_dim))
-        nn.init.normal_(self.codebooks, mean=0.0, std=0.01)
+        
+        if init_codebooks is not None:
+            # 使用预先计算好的码本来初始化
+            assert init_codebooks.shape == (num_subvectors, code_size, self.subvector_dim), \
+                f"初始化码本的形状 {init_codebooks.shape} 与期望形状 {(num_subvectors, code_size, self.subvector_dim)} 不匹配"
+            self.codebooks.data.copy_(init_codebooks)
+        else:
+            # 使用普通的随机初始化
+            nn.init.normal_(self.codebooks, mean=0.0, std=0.01)
 
     def forward(self, x):
         batch_size = x.size(0)
@@ -60,7 +68,7 @@ class PQHead(nn.Module):
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         
-        model_path = output_path / "pq_head_full.pt"
+        model_path = output_path / "pq_head_best.pt"
         state = {
             'input_dim': self.input_dim,
             'num_subvectors': self.num_subvectors,

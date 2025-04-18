@@ -61,6 +61,7 @@ def parse_args():
     parser.add_argument("--log_dir", type=str, default="logs/debug", help="日志目录")
     parser.add_argument("--log_file", type=str, default="debug.log", help="日志文件名")
     parser.add_argument("--model_name_with_params", action="store_true", default=False, help="模型名称是否包含参数")
+    parser.add_argument("--init_pq_path", type=str, default="", help="预初始化的PQ头路径，如果提供则从此路径加载初始化的码本")
     
     return parser.parse_args()
 
@@ -108,7 +109,7 @@ def prepare_data(args):
         # 训练集采样
         if args.train_sample_ratio < 1.0:
             train_size = max(1, int(len(full_train_data) * args.train_sample_ratio))
-            train_data = full_train_data.sample(n=train_size, random_state=42)
+            train_data = full_train_data.sample(n=train_size)
         else:
             train_data = full_train_data
         
@@ -116,7 +117,7 @@ def prepare_data(args):
         if args.val_ratio > 0:
             val_size = int(len(train_data) * args.val_ratio)
             val_size = max(1, val_size)
-            val_data = train_data.sample(n=val_size, random_state=42)
+            val_data = train_data.sample(n=val_size)
             train_data = train_data.drop(val_data.index)
         else:
             val_data = pd.DataFrame(columns=train_data.columns)
@@ -142,12 +143,12 @@ def prepare_data(args):
     
     # 拆分数据集
     test_size = int(len(data) * args.test_ratio)
-    test_data = data.sample(n=test_size, random_state=42)
+    test_data = data.sample(n=test_size)
     remaining_data = data.drop(test_data.index)
     
     val_size = int(len(remaining_data) * args.val_ratio)
     val_size = max(1, val_size)
-    val_data = remaining_data.sample(n=val_size, random_state=42)
+    val_data = remaining_data.sample(n=val_size)
     train_data = remaining_data.drop(val_data.index)
 
     return train_data, val_data, test_data
@@ -183,41 +184,6 @@ def get_unique_model_path(args):
         path = f"{path}/{param_str}"
     
     return path
-
-def save_results(results, args):
-    if results is None:
-        return
-        
-    # 获取保存路径
-    output_dir = get_unique_model_path(args)
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    
-    # 提取模型名称
-    model_names = []
-    for model_name in args.local_model_names:
-        model_names.append(f"local_{model_name.replace('/', '_')}")
-    for model_name in args.api_model_names:
-        model_names.append(f"api_{model_name.replace('/', '_')}")
-    
-    # 创建结果摘要
-    summary = {
-        "dataset": args.dataset,
-        "langs": args.langs,
-        "use_pq": args.use_pq,
-        "hyperparams": {
-            "lr": args.lr,
-            "l2": args.l2,
-            "epochs": args.epochs,
-            "batch_size": args.batch_size
-        },
-        "models": model_names,
-        "results": results
-    }
-    
-    # 保存结果
-    with open(output_path / "evaluation_results.json", "w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2, ensure_ascii=False)
 
 def main():
     args = parse_args()
@@ -255,13 +221,13 @@ def main():
     if args.use_pq:
         logger.info(f"PQ参数: input_dim={args.input_dim}, num_subvectors={args.num_subvectors}, code_size={args.code_size}")
     
-    results, pq_head = train(
-        models=local_models,
-        tokenizers=local_tokenizers,
-        embedding_funcs=api_embedding_funcs,
-        train_data=train_data,
-        val_data=val_data,
-        test_data=test_data,
+    train(
+        local_models, 
+        local_tokenizers, 
+        api_embedding_funcs,
+        train_data, 
+        val_data, 
+        test_data,
         device=device,
         epochs=args.epochs,
         lr=args.lr,
@@ -273,12 +239,9 @@ def main():
         input_dim=args.input_dim,
         num_subvectors=args.num_subvectors,
         code_size=args.code_size,
+        init_pq_path=args.init_pq_path,
         logger=logger
     )
-    
-    # 保存结果
-    save_results(results, args)
-    logger.info("训练完成")
 
 if __name__ == "__main__":
     main()
