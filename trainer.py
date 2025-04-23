@@ -27,7 +27,9 @@ class MultiModelTrainer:
         num_subvectors: int = 8,
         code_size: int = 256,
         init_pq_path: str = "",
-        logger = None
+        logger = None,
+        attention_hidden_dim: int = 64,
+        attention_lr: float = None
     ):
         self.models = models
         self.tokenizers = tokenizers
@@ -66,7 +68,8 @@ class MultiModelTrainer:
             num_subvectors=num_subvectors,
             code_size=code_size,
             use_pq=use_pq,
-            init_codebooks=init_codebooks
+            init_codebooks=init_codebooks,
+            attention_hidden_dim=attention_hidden_dim
         ).to(device)
         
         self.cos_criterion = nn.CosineEmbeddingLoss()
@@ -82,6 +85,18 @@ class MultiModelTrainer:
             for model in self.models:
                 params.extend(filter(lambda p: p.requires_grad, model.parameters()))
         self.optimizer = optim.Adam(params, lr=lr, weight_decay=l2)
+        
+        # 如果设置了单独的注意力学习率，创建单独的优化器
+        self.attention_lr = attention_lr
+        if attention_lr is not None:
+            # 获取注意力机制相关参数
+            attention_params = list(self.pq_head.attention.parameters())
+            self.attention_optimizer = optim.Adam(attention_params, lr=attention_lr, weight_decay=l2)
+            
+            if self.logger:
+                self.logger.info(f"为注意力机制设置单独的学习率: {attention_lr}")
+            else:
+                print(f"为注意力机制设置单独的学习率: {attention_lr}")
 
     def _prepare_model_for_training(self, model, num_trainable_layers):
         """冻结或解冻基础模型层"""
@@ -129,6 +144,12 @@ class MultiModelTrainer:
         total_loss = 0.0
         num_batches = max(int(len(data) / batch_size + 0.99), 1)
         data_shuffled = data.sample(frac=1)
+        
+        # 用于统计所有数据的bias相对于原始值的比例
+        total_original_norm = 0.0
+        total_bias_norm = 0.0
+        total_ratio_sum = 0.0
+        total_samples = 0
 
         for i in tqdm(range(num_batches), desc="训练中"):
             batch = data_shuffled[i * batch_size : (i + 1) * batch_size]
@@ -146,6 +167,27 @@ class MultiModelTrainer:
                     # 非量化模式
                     batch_loss += self.cos_criterion(emb1, emb2, cos_labels)
                 else:
+                    # 如果是第一个模型，计算该批次所有样本的bias统计数据
+                    if idx == 0:
+                        with torch.no_grad():
+                            # 对每个样本计算
+                            batch_size_actual = emb1.size(0)
+                            for j in range(batch_size_actual):
+                                # 获取样本的子向量
+                                subvectors = emb1[j].reshape(1, self.pq_head.num_subvectors, self.pq_head.subvector_dim)
+                                # 计算bias
+                                bias = self.pq_head.attention(subvectors)
+                                # 计算原始范数和bias范数
+                                original_norm = torch.norm(subvectors).item()
+                                bias_norm = torch.norm(bias).item()
+                                ratio = bias_norm / original_norm if original_norm > 0 else 0
+                                
+                                # 累加统计
+                                total_original_norm += original_norm
+                                total_bias_norm += bias_norm
+                                total_ratio_sum += ratio
+                                total_samples += 1
+                    
                     # 量化模式，先应用PQ，然后计算余弦损失
                     pq_out1 = self.pq_head(emb1)
                     pq_out2 = self.pq_head(emb2)
@@ -154,10 +196,31 @@ class MultiModelTrainer:
             # 反向传播
             loss = batch_loss / (len(self.models) + len(self.embedding_funcs))
             self.optimizer.zero_grad()
+            if self.attention_lr is not None:
+                self.attention_optimizer.zero_grad()
+            
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.pq_head.parameters(), max_norm=1.0)
             self.optimizer.step()
+            
+            if self.attention_lr is not None:
+                self.attention_optimizer.step()
+                
             total_loss += loss.item()
+        
+        # 计算并打印所有数据的平均值
+        if total_samples > 0:
+            avg_original_norm = total_original_norm / total_samples
+            avg_bias_norm = total_bias_norm / total_samples
+            avg_ratio = total_ratio_sum / total_samples
+            
+            log_msg = f"\nBias统计平均值 (共{total_samples}个样本):\n"
+            log_msg += f"平均原始范数: {avg_original_norm:.6f}, 平均Bias范数: {avg_bias_norm:.6f}, 平均比例: {avg_ratio:.6f}"
+            
+            if self.logger:
+                self.logger.info(log_msg)
+            else:
+                print(log_msg)
 
         return total_loss / num_batches
 
@@ -292,7 +355,9 @@ def train(
     num_subvectors: int = 8,
     code_size: int = 256,
     init_pq_path: str = "",
-    logger = None
+    logger = None,
+    attention_hidden_dim: int = 64,
+    attention_lr: float = None
 ):
     """训练主函数"""
     if device is None:
@@ -311,7 +376,9 @@ def train(
         num_subvectors=num_subvectors,
         code_size=code_size,
         init_pq_path=init_pq_path,
-        logger=logger
+        logger=logger,
+        attention_hidden_dim=attention_hidden_dim,
+        attention_lr=attention_lr
     )
     
     trainer.train_pq_head(

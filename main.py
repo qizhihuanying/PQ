@@ -62,6 +62,8 @@ def parse_args():
     parser.add_argument("--log_file", type=str, default="debug.log", help="日志文件名")
     parser.add_argument("--model_name_with_params", action="store_true", default=False, help="模型名称是否包含参数")
     parser.add_argument("--init_pq_path", type=str, default="", help="预初始化的PQ头路径，如果提供则从此路径加载初始化的码本")
+    parser.add_argument("--attention_hidden_dim", type=int, default=256, help="注意力机制隐藏维度")
+    parser.add_argument("--attention_lr", type=float, default=None, help="注意力机制专用学习率，若不设置则使用全局学习率")
     
     return parser.parse_args()
 
@@ -221,13 +223,14 @@ def main():
     if args.use_pq:
         logger.info(f"PQ参数: input_dim={args.input_dim}, num_subvectors={args.num_subvectors}, code_size={args.code_size}")
     
+    # 调用训练函数
     train(
-        local_models, 
-        local_tokenizers, 
-        api_embedding_funcs,
-        train_data, 
-        val_data, 
-        test_data,
+        models=local_models,
+        tokenizers=local_tokenizers,
+        embedding_funcs=api_embedding_funcs,
+        train_data=train_data,
+        val_data=val_data,
+        test_data=test_data,
         device=device,
         epochs=args.epochs,
         lr=args.lr,
@@ -240,7 +243,9 @@ def main():
         num_subvectors=args.num_subvectors,
         code_size=args.code_size,
         init_pq_path=args.init_pq_path,
-        logger=logger
+        logger=logger,
+        attention_hidden_dim=args.attention_hidden_dim,
+        attention_lr=args.attention_lr
     )
 
 if __name__ == "__main__":

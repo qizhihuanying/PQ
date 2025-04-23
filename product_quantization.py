@@ -4,8 +4,35 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class SelfAttention(nn.Module):
+    def __init__(self, subvector_dim, hidden_dim=256):
+        super().__init__()
+        self.query = nn.Linear(subvector_dim, hidden_dim)
+        self.key = nn.Linear(subvector_dim, hidden_dim)
+        self.value = nn.Linear(subvector_dim, hidden_dim)
+        self.output = nn.Linear(hidden_dim, subvector_dim)
+        
+    def forward(self, x):
+        # x shape: [batch_size, num_subvectors, subvector_dim]
+        q = self.query(x)  
+        k = self.key(x)    
+        v = self.value(x)
+
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (k.size(-1) ** 0.5)  # [batch_size, num_subvectors, num_subvectors]
+        attention_weights = F.softmax(scores, dim=-1)
+
+        context = torch.matmul(attention_weights, v)  # [batch_size, num_subvectors, hidden_dim]
+
+        bias = self.output(context)  # [batch_size, num_subvectors, subvector_dim]
+        # x_norm = torch.norm(x, dim=-1, keepdim=True)
+        # bias_norm = torch.norm(bias, dim=-1, keepdim=True)
+        # scale = torch.clamp(x_norm * 0.5 / (bias_norm + 1e-8), max=1.0)
+        # scaled_bias = bias * scale
+        
+        return bias
+
 class PQHead(nn.Module):
-    def __init__(self, input_dim=768, num_subvectors=128, code_size=32, use_pq=True, init_codebooks=None):
+    def __init__(self, input_dim=768, num_subvectors=128, code_size=32, use_pq=True, init_codebooks=None, attention_hidden_dim=64):
         super().__init__()
         self.input_dim = input_dim
         self.num_subvectors = num_subvectors
@@ -15,14 +42,13 @@ class PQHead(nn.Module):
         assert input_dim % num_subvectors == 0, f"Input dimension {input_dim} must be divisible by number of subvectors {num_subvectors}"
         self.subvector_dim = input_dim // num_subvectors
         self.codebooks = nn.Parameter(torch.randn(num_subvectors, code_size, self.subvector_dim))
+        self.attention = SelfAttention(self.subvector_dim, hidden_dim=attention_hidden_dim)
         
         if init_codebooks is not None:
-            # 使用预先计算好的码本来初始化
             assert init_codebooks.shape == (num_subvectors, code_size, self.subvector_dim), \
                 f"初始化码本的形状 {init_codebooks.shape} 与期望形状 {(num_subvectors, code_size, self.subvector_dim)} 不匹配"
             self.codebooks.data.copy_(init_codebooks)
         else:
-            # 使用普通的随机初始化
             nn.init.normal_(self.codebooks, mean=0.0, std=0.01)
 
     def forward(self, x):
@@ -34,9 +60,11 @@ class PQHead(nn.Module):
             return x
 
         subvectors = x.reshape(batch_size, self.num_subvectors, self.subvector_dim)
-        
+        bias = self.attention(subvectors)
+        enhanced_subvectors = subvectors + bias
+
         # Compute dot products [batch_size, num_subvectors, code_size]
-        dot_products = torch.sum(subvectors.unsqueeze(2) * self.codebooks.unsqueeze(0), dim=-1)
+        dot_products = torch.sum(enhanced_subvectors.unsqueeze(2) * self.codebooks.unsqueeze(0), dim=-1)
         
         if self.training:
             # Compute soft assignment [batch_size, num_subvectors, code_size]
@@ -74,7 +102,9 @@ class PQHead(nn.Module):
             'num_subvectors': self.num_subvectors,
             'code_size': self.code_size,
             'use_pq': self.use_pq,
-            'codebooks': self.codebooks.data
+            'codebooks': self.codebooks.data,
+            'attention_state_dict': self.attention.state_dict(),
+            'attention_hidden_dim': self.attention.query.out_features
         }
         torch.save(state, model_path)
 
@@ -82,7 +112,8 @@ class PQHead(nn.Module):
             "input_dim": self.input_dim,
             "num_subvectors": self.num_subvectors,
             "code_size": self.code_size,
-            "use_pq": self.use_pq
+            "use_pq": self.use_pq,
+            "attention_hidden_dim": self.attention.query.out_features
         }
         config_path = output_path / "config.json"
         with open(config_path, "w") as f:
@@ -103,11 +134,16 @@ class PQHead(nn.Module):
                 input_dim=state['input_dim'],
                 num_subvectors=state['num_subvectors'],
                 code_size=state['code_size'],
-                use_pq=state.get('use_pq', True)
+                use_pq=state.get('use_pq', True),
+                attention_hidden_dim=state.get('attention_hidden_dim', 64)
             ).to(device)
             
             # 加载码本权重
             model.codebooks.data.copy_(state['codebooks'])
+            
+            # 加载自注意力层参数（如果存在）
+            if 'attention_state_dict' in state:
+                model.attention.load_state_dict(state['attention_state_dict'])
             
             return model
             
