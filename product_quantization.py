@@ -4,35 +4,59 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class SelfAttention(nn.Module):
-    def __init__(self, subvector_dim, hidden_dim=256):
+class MultiHeadSelfAttention(nn.Module):
+    def __init__(self, subvector_dim, hidden_dim=256, num_heads=4):
         super().__init__()
+        self.num_heads = num_heads
+        self.hidden_dim = hidden_dim
+        assert hidden_dim % num_heads == 0, f"隐藏维度 {hidden_dim} 必须能被注意力头数 {num_heads} 整除"
+        self.head_dim = hidden_dim // num_heads
+        
         self.query = nn.Linear(subvector_dim, hidden_dim)
         self.key = nn.Linear(subvector_dim, hidden_dim)
         self.value = nn.Linear(subvector_dim, hidden_dim)
         self.output = nn.Linear(hidden_dim, subvector_dim)
         
+        # 将输出层权重和偏置初始化为零
+        nn.init.zeros_(self.output.weight)
+        nn.init.zeros_(self.output.bias)
+        
     def forward(self, x):
         # x shape: [batch_size, num_subvectors, subvector_dim]
+        batch_size, num_subvectors, _ = x.size()
+        
+        # 投影查询、键、值 [batch_size, num_subvectors, hidden_dim]
         q = self.query(x)  
         k = self.key(x)    
         v = self.value(x)
 
-        scores = torch.matmul(q, k.transpose(-2, -1)) / (k.size(-1) ** 0.5)  # [batch_size, num_subvectors, num_subvectors]
+        # 将隐藏维度分成多个头 [batch_size, num_subvectors, num_heads, head_dim]
+        q = q.view(batch_size, num_subvectors, self.num_heads, self.head_dim)
+        k = k.view(batch_size, num_subvectors, self.num_heads, self.head_dim)
+        v = v.view(batch_size, num_subvectors, self.num_heads, self.head_dim)
+        
+        # 转置以便在头上进行批处理计算 [batch_size, num_heads, num_subvectors, head_dim]
+        q = q.transpose(1, 2)
+        k = k.transpose(1, 2)
+        v = v.transpose(1, 2)
+        
+        # 注意力分数计算 [batch_size, num_heads, num_subvectors, num_subvectors]
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.head_dim ** 0.5)
         attention_weights = F.softmax(scores, dim=-1)
-
-        context = torch.matmul(attention_weights, v)  # [batch_size, num_subvectors, hidden_dim]
-
+        
+        # 应用注意力权重 [batch_size, num_heads, num_subvectors, head_dim]
+        context = torch.matmul(attention_weights, v)
+        
+        # 转置回原始形状并合并头 [batch_size, num_subvectors, hidden_dim]
+        context = context.transpose(1, 2).reshape(batch_size, num_subvectors, self.hidden_dim)
+        
+        # 输出投影
         bias = self.output(context)  # [batch_size, num_subvectors, subvector_dim]
-        # x_norm = torch.norm(x, dim=-1, keepdim=True)
-        # bias_norm = torch.norm(bias, dim=-1, keepdim=True)
-        # scale = torch.clamp(x_norm * 0.5 / (bias_norm + 1e-8), max=1.0)
-        # scaled_bias = bias * scale
         
         return bias
 
 class PQHead(nn.Module):
-    def __init__(self, input_dim=768, num_subvectors=128, code_size=32, use_pq=True, init_codebooks=None, attention_hidden_dim=64):
+    def __init__(self, input_dim=768, num_subvectors=128, code_size=32, use_pq=True, init_codebooks=None, attention_hidden_dim=64, num_attention_heads=4):
         super().__init__()
         self.input_dim = input_dim
         self.num_subvectors = num_subvectors
@@ -42,7 +66,7 @@ class PQHead(nn.Module):
         assert input_dim % num_subvectors == 0, f"Input dimension {input_dim} must be divisible by number of subvectors {num_subvectors}"
         self.subvector_dim = input_dim // num_subvectors
         self.codebooks = nn.Parameter(torch.randn(num_subvectors, code_size, self.subvector_dim))
-        self.attention = SelfAttention(self.subvector_dim, hidden_dim=attention_hidden_dim)
+        self.attention = MultiHeadSelfAttention(self.subvector_dim, hidden_dim=attention_hidden_dim, num_heads=num_attention_heads)
         
         if init_codebooks is not None:
             assert init_codebooks.shape == (num_subvectors, code_size, self.subvector_dim), \
@@ -104,7 +128,8 @@ class PQHead(nn.Module):
             'use_pq': self.use_pq,
             'codebooks': self.codebooks.data,
             'attention_state_dict': self.attention.state_dict(),
-            'attention_hidden_dim': self.attention.query.out_features
+            'attention_hidden_dim': self.attention.hidden_dim,
+            'num_attention_heads': self.attention.num_heads
         }
         torch.save(state, model_path)
 
@@ -113,7 +138,8 @@ class PQHead(nn.Module):
             "num_subvectors": self.num_subvectors,
             "code_size": self.code_size,
             "use_pq": self.use_pq,
-            "attention_hidden_dim": self.attention.query.out_features
+            "attention_hidden_dim": self.attention.hidden_dim,
+            "num_attention_heads": self.attention.num_heads
         }
         config_path = output_path / "config.json"
         with open(config_path, "w") as f:
@@ -135,7 +161,8 @@ class PQHead(nn.Module):
                 num_subvectors=state['num_subvectors'],
                 code_size=state['code_size'],
                 use_pq=state.get('use_pq', True),
-                attention_hidden_dim=state.get('attention_hidden_dim', 64)
+                attention_hidden_dim=state.get('attention_hidden_dim', 64),
+                num_attention_heads=state.get('num_attention_heads', 4)
             ).to(device)
             
             # 加载码本权重

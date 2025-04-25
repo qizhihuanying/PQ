@@ -64,6 +64,7 @@ def parse_args():
     parser.add_argument("--init_pq_path", type=str, default="", help="预初始化的PQ头路径，如果提供则从此路径加载初始化的码本")
     parser.add_argument("--attention_hidden_dim", type=int, default=256, help="注意力机制隐藏维度")
     parser.add_argument("--attention_lr", type=float, default=None, help="注意力机制专用学习率，若不设置则使用全局学习率")
+    parser.add_argument("--num_attention_heads", type=int, default=4, help="多头注意力的头数")
     
     return parser.parse_args()
 
@@ -218,10 +219,8 @@ def main():
     unique_model_path = get_unique_model_path(args)
     logger.info(f"模型将保存到: {unique_model_path}")
     
-    # 训练模型
-    logger.info(f"开始训练: epochs={args.epochs}, lr={args.lr}, batch_size={args.batch_size}, use_pq={args.use_pq}")
-    if args.use_pq:
-        logger.info(f"PQ参数: input_dim={args.input_dim}, num_subvectors={args.num_subvectors}, code_size={args.code_size}")
+    # 打印参数配置和数据集大小
+    logger.info(f"参数配置: {vars(args)} | 数据集大小: 训练集={len(train_data)}，验证集={len(val_data)}，测试集={len(test_data)}")
     
     # 调用训练函数
     train(
@@ -245,7 +244,8 @@ def main():
         init_pq_path=args.init_pq_path,
         logger=logger,
         attention_hidden_dim=args.attention_hidden_dim,
-        attention_lr=args.attention_lr
+        attention_lr=args.attention_lr,
+        num_attention_heads=args.num_attention_heads
     )
 
 if __name__ == "__main__":

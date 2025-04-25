@@ -29,7 +29,8 @@ class MultiModelTrainer:
         init_pq_path: str = "",
         logger = None,
         attention_hidden_dim: int = 64,
-        attention_lr: float = None
+        attention_lr: float = None,
+        num_attention_heads: int = 4
     ):
         self.models = models
         self.tokenizers = tokenizers
@@ -69,7 +70,8 @@ class MultiModelTrainer:
             code_size=code_size,
             use_pq=use_pq,
             init_codebooks=init_codebooks,
-            attention_hidden_dim=attention_hidden_dim
+            attention_hidden_dim=attention_hidden_dim,
+            num_attention_heads=num_attention_heads
         ).to(device)
         
         self.cos_criterion = nn.CosineEmbeddingLoss()
@@ -92,11 +94,7 @@ class MultiModelTrainer:
             # 获取注意力机制相关参数
             attention_params = list(self.pq_head.attention.parameters())
             self.attention_optimizer = optim.Adam(attention_params, lr=attention_lr, weight_decay=l2)
-            
-            if self.logger:
-                self.logger.info(f"为注意力机制设置单独的学习率: {attention_lr}")
-            else:
-                print(f"为注意力机制设置单独的学习率: {attention_lr}")
+            self.logger.info(f"为注意力机制设置单独的学习率: {attention_lr}")
 
     def _prepare_model_for_training(self, model, num_trainable_layers):
         """冻结或解冻基础模型层"""
@@ -200,7 +198,7 @@ class MultiModelTrainer:
                 self.attention_optimizer.zero_grad()
             
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.pq_head.parameters(), max_norm=1.0)
+            # torch.nn.utils.clip_grad_norm_(self.pq_head.parameters(), max_norm=1.0)
             self.optimizer.step()
             
             if self.attention_lr is not None:
@@ -213,14 +211,8 @@ class MultiModelTrainer:
             avg_original_norm = total_original_norm / total_samples
             avg_bias_norm = total_bias_norm / total_samples
             avg_ratio = total_ratio_sum / total_samples
-            
-            log_msg = f"\nBias统计平均值 (共{total_samples}个样本):\n"
-            log_msg += f"平均原始范数: {avg_original_norm:.6f}, 平均Bias范数: {avg_bias_norm:.6f}, 平均比例: {avg_ratio:.6f}"
-            
-            if self.logger:
-                self.logger.info(log_msg)
-            else:
-                print(log_msg)
+            log_msg = f"平均原始范数: {avg_original_norm:.6f}, 平均Bias范数: {avg_bias_norm:.6f}, 平均比例: {avg_ratio:.6f}"
+            self.logger.info(log_msg)
 
         return total_loss / num_batches
 
@@ -325,6 +317,7 @@ class MultiModelTrainer:
         if test_data is not None and len(test_data) > 0:
             self.logger.info("重新加载最佳模型进行评估...")
             original_use_pq = self.pq_head.use_pq
+            # 加载最佳模型并传递回设备
             self.pq_head = PQHead.load_model(
                 f"{output_dir}/pq_head_best.pt",
                 self.device
@@ -332,7 +325,6 @@ class MultiModelTrainer:
             self.pq_head.use_pq = original_use_pq
             self.pq_head.train(False)  # 设置为评估模式
             self.logger.info(f"评估设置：use_pq={self.pq_head.use_pq}, training={self.pq_head.training}")
-                
             ndcg_results = self.calculate_ndcg10(test_data)
             self.logger.info(f"最终NDCG@10评估: {ndcg_results}")
 
@@ -357,7 +349,8 @@ def train(
     init_pq_path: str = "",
     logger = None,
     attention_hidden_dim: int = 64,
-    attention_lr: float = None
+    attention_lr: float = None,
+    num_attention_heads: int = 4
 ):
     """训练主函数"""
     if device is None:
@@ -378,7 +371,8 @@ def train(
         init_pq_path=init_pq_path,
         logger=logger,
         attention_hidden_dim=attention_hidden_dim,
-        attention_lr=attention_lr
+        attention_lr=attention_lr,
+        num_attention_heads=num_attention_heads
     )
     
     trainer.train_pq_head(
