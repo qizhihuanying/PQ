@@ -84,6 +84,7 @@ class PQHead(nn.Module):
             return x
 
         subvectors = x.reshape(batch_size, self.num_subvectors, self.subvector_dim)
+
         bias = self.attention(subvectors)
         enhanced_subvectors = subvectors + bias
 

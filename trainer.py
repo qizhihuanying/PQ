@@ -81,20 +81,22 @@ class MultiModelTrainer:
             for model in self.models:
                 self._prepare_model_for_training(model, num_trainable_layers)
             
-        # 准备优化器
-        params = list(self.pq_head.parameters())
+        # 准备优化器参数组
+        main_params = list(self.pq_head.parameters())
         if num_trainable_layers > 0:
             for model in self.models:
-                params.extend(filter(lambda p: p.requires_grad, model.parameters()))
-        self.optimizer = optim.Adam(params, lr=lr, weight_decay=l2)
+                main_params.extend(filter(lambda p: p.requires_grad, model.parameters()))
         
-        # 如果设置了单独的注意力学习率，创建单独的优化器
-        self.attention_lr = attention_lr
-        if attention_lr is not None:
-            # 获取注意力机制相关参数
-            attention_params = list(self.pq_head.attention.parameters())
-            self.attention_optimizer = optim.Adam(attention_params, lr=attention_lr, weight_decay=l2)
-            self.logger.info(f"为注意力机制设置单独的学习率: {attention_lr}")
+        # 排除 attention 参数
+        attention_params = list(self.pq_head.attention.parameters())
+        attention_param_ids = [id(p) for p in attention_params]
+        main_params = [p for p in main_params if id(p) not in attention_param_ids]
+        
+        self.logger.info(f"为注意力机制设置单独的学习率: {attention_lr}")
+        self.optimizer = optim.Adam([
+            {"params": main_params, "lr": lr},
+            {"params": attention_params, "lr": attention_lr}
+        ], weight_decay=l2)
 
     def _prepare_model_for_training(self, model, num_trainable_layers):
         """冻结或解冻基础模型层"""
@@ -194,15 +196,10 @@ class MultiModelTrainer:
             # 反向传播
             loss = batch_loss / (len(self.models) + len(self.embedding_funcs))
             self.optimizer.zero_grad()
-            if self.attention_lr is not None:
-                self.attention_optimizer.zero_grad()
             
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(self.pq_head.parameters(), max_norm=1.0)
             self.optimizer.step()
-            
-            if self.attention_lr is not None:
-                self.attention_optimizer.step()
                 
             total_loss += loss.item()
         
