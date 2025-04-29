@@ -252,6 +252,28 @@ class MultiModelTrainer:
         # 添加模型总数属性，以便ndcg_utils识别
         get_embeddings_wrapper.total_model_count = len(self.models) + len(self.embedding_funcs)
         
+        # 添加获取模型名称的方法
+        def get_model_name(model_idx):
+            if model_idx < len(self.models):  # 本地模型
+                # 从预训练模型名称中提取
+                if hasattr(self.models[model_idx], 'name_or_path'):
+                    return self.models[model_idx].name_or_path.split('/')[-1]
+                elif hasattr(self.models[model_idx], 'config') and hasattr(self.models[model_idx].config, 'name_or_path'):
+                    return self.models[model_idx].config.name_or_path.split('/')[-1]
+                else:
+                    return f"local_model_{model_idx}"
+            else:  # API模型
+                api_idx = model_idx - len(self.models)
+                if hasattr(self.embedding_funcs[api_idx], '__name__'):
+                    return self.embedding_funcs[api_idx].__name__
+                elif hasattr(self.embedding_funcs[api_idx], '__self__') and hasattr(self.embedding_funcs[api_idx].__self__, 'func'):
+                    return self.embedding_funcs[api_idx].__self__.func.__name__
+                else:
+                    return f"api_model_{api_idx}"
+        
+        # 将获取模型名称的方法附加到包装函数
+        get_embeddings_wrapper.get_model_name = get_model_name
+        
         # 调用工具函数计算NDCG@10
         return calculate_ndcg10(
             data=data,
@@ -324,6 +346,7 @@ class MultiModelTrainer:
             self.logger.info(f"评估设置：use_pq={self.pq_head.use_pq}, training={self.pq_head.training}")
             ndcg_results = self.calculate_ndcg10(test_data)
             self.logger.info(f"最终NDCG@10评估: {ndcg_results}")
+
 
 def train(
     models: List[nn.Module],

@@ -39,9 +39,14 @@ def calculate_ndcg10(
         model_count = get_embeddings.total_model_count if hasattr(get_embeddings, 'total_model_count') else 1
 
         for model_idx in range(model_count):
-            model_name = f"model_{model_idx}"
+            # 获取真实的模型名称（如果get_embeddings提供）
+            if hasattr(get_embeddings, 'get_model_name'):
+                model_name = get_embeddings.get_model_name(model_idx)
+            else:
+                model_name = f"model_{model_idx}"
+                
             if logger:
-                logger.info(f"开始计算 {lang} 语言模型 {model_idx} 的NDCG@10")
+                logger.info(f"开始计算 {lang} 语言使用{model_name}的NDCG@10")
             
             # 收集所有唯一的查询和文档
             queries = {}         # 查询ID -> 查询文本
@@ -71,7 +76,7 @@ def calculate_ndcg10(
             
             # 批量计算所有查询的embedding
             query_embeddings = {}  # 查询ID -> embedding
-            batch_size = 32  # 可以根据GPU内存调整
+            batch_size = 64  # 可以根据GPU内存调整
             
             # 将查询ID和文本转换为列表，以便批处理
             query_ids = list(queries.keys())
@@ -112,6 +117,11 @@ def calculate_ndcg10(
                 for j, did in enumerate(batch_ids):
                     corpus_embeddings[did] = batch_embs[j:j+1]
             
+            # 将corpus_embeddings转换为tensor用于向量化计算
+            corpus_emb_tensor = torch.cat([corpus_embeddings[did] for did in corpus_doc_ids])
+            if torch.cuda.is_available():
+                corpus_emb_tensor = corpus_emb_tensor.to('cuda')
+            
             # 计算每个查询的NDCG@10
             ndcg_list = []
             
@@ -122,28 +132,24 @@ def calculate_ndcg10(
                     continue
                 
                 query_emb = query_embeddings[query_id]
+                if torch.cuda.is_available():
+                    query_emb = query_emb.to('cuda')
                 
-                # 计算查询与语料库中每个文档的相似度
-                doc_similarities = []  # [(doc_id, similarity), ...]
+                # 使用向量化操作计算查询与所有文档的相似度
+                sim_scores = torch.nn.functional.cosine_similarity(query_emb, corpus_emb_tensor, dim=1)
+                sim_scores = sim_scores.cpu().numpy()
                 
-                for doc_id, doc_emb in corpus_embeddings.items():
-                    # 使用余弦相似度计算向量之间的相似度
-                    sim = torch.nn.functional.cosine_similarity(query_emb, doc_emb).item()
-                    doc_similarities.append((doc_id, sim))
-                
-                # 按相似度降序排序，当相似度相等时，使用相关性作为第二排序键
-                doc_similarities.sort(key=lambda x: (x[1], qrels.get(query_id, {}).get(x[0], 0)), reverse=True)
+                # 获取排序后的文档ID
+                sorted_indices = np.argsort(sim_scores)[::-1]
+                sorted_doc_ids = [corpus_doc_ids[idx] for idx in sorted_indices]
+                sorted_sim_scores = sim_scores[sorted_indices]
                 
                 # 取前K个进行评估
                 k = 10
                 
                 # 构建真实相关性列表和预测相似度列表
-                y_true = []
-                y_score = []
-                for doc_id, sim in doc_similarities:
-                    relevance = qrels.get(query_id, {}).get(doc_id, 0)
-                    y_true.append(relevance)
-                    y_score.append(sim)
+                y_true = [qrels.get(query_id, {}).get(did, 0) for did in sorted_doc_ids]
+                y_score = sorted_sim_scores.tolist()
                 
                 # 计算NDCG@10
                 try:
@@ -169,10 +175,11 @@ def calculate_ndcg10(
                         logger.info(f"查询ID: {query_id}")
                         logger.info(f"查询文本: {queries[query_id]}")
                         logger.info(f"Top {k} 结果:")
-                        for i, (doc_id, sim) in enumerate(doc_similarities[:k]):
-                            relevance = qrels.get(query_id, {}).get(doc_id, 0)
-                            doc_snippet = corpus_docs[doc_id][:50] + "..." if len(corpus_docs[doc_id]) > 50 else corpus_docs[doc_id]
-                            logger.info(f"  {i+1}. 文档ID: {doc_id}, 相关性: {relevance}, 相似度: {sim:.4f}")
+                        for i, did in enumerate(sorted_doc_ids[:k]):
+                            relevance = qrels.get(query_id, {}).get(did, 0)
+                            sim = y_score[i]
+                            doc_snippet = corpus_docs[did][:50] + "..." if len(corpus_docs[did]) > 50 else corpus_docs[did]
+                            logger.info(f"  {i+1}. 文档ID: {did}, 相关性: {relevance}, 相似度: {sim:.4f}")
                             logger.info(f"     文档片段: {doc_snippet}")
                         logger.info(f"NDCG@{k}: {ndcg_val:.4f}")
                     
@@ -186,10 +193,20 @@ def calculate_ndcg10(
                 avg_ndcg = float(np.mean(ndcg_list))
                 results[lang][model_name] = avg_ndcg
                 if logger:
-                    logger.info(f"{lang} 语言模型 {model_idx} 的平均NDCG@10: {avg_ndcg:.4f}")
+                    logger.info(f"{lang}语言使用{model_name}的平均NDCG@10: {avg_ndcg:.4f}")
             else:
                 results[lang][model_name] = 0.0
                 if logger:
-                    logger.info(f"{lang} 语言模型 {model_idx} 没有有效的NDCG@10结果")
+                    logger.info(f"{lang}语言使用{model_name}没有有效的NDCG@10结果")
 
-    return results 
+    # 计算并记录所有语言的平均NDCG@10
+    all_ndcg_values = []
+    for lang_results in results.values():
+        for model_score in lang_results.values():
+            all_ndcg_values.append(model_score)
+            
+    if all_ndcg_values and logger:
+        overall_avg_ndcg = sum(all_ndcg_values) / len(all_ndcg_values)
+        logger.info(f"所有语言平均NDCG@10: {overall_avg_ndcg:.4f}")
+
+    return results

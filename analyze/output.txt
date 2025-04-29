@@ -1,0 +1,309 @@
+MIRACL数据集所有语言的Pickle文件分析
+==================================================
+
+语言: ar
+数据示例:                                                query                                           doc_text                  doc_title  ... query_id     doc_id relevance
+0      هل عدم القيام بجهد جسماني ممكن ان يسبب الأرق؟  يمكن أن يحدث الأرق بشكل مستقل أو نتيجة لمشكلة ...                        أرق  ...        0   151236#1         1
+1      هل عدم القيام بجهد جسماني ممكن ان يسبب الأرق؟  في كثير من الحالات، يشترك الأرق مع مرض آخر، كم...                        أرق  ...        0  151236#11         1
+2      هل عدم القيام بجهد جسماني ممكن ان يسبب الأرق؟  الأرق هو عبارة عن اضطراب في النوم أو تقطعه أو ...                        أرق  ...        0   151236#0         0
+3      هل عدم القيام بجهد جسماني ممكن ان يسبب الأرق؟  لا يوجد سبب واحد دقيق معروف للوخز الجانبي، ولك...                  وخز جانبي  ...        0  3333928#1         0
+4      هل عدم القيام بجهد جسماني ممكن ان يسبب الأرق؟  هذه الدراسة أيضا تثبت العديد من المرضى قد ادعو...  قطع الودي الصدري بالتنظير  ...        0  969813#11         0
+...                                              ...                                                ...                        ...  ...      ...        ...       ...
+29192                             من ابتكر المثلجات؟  المثلج هو عبارة عن مادة تستخدم عادة في دورة ال...                مثلج (مادة)  ...    15511  1128555#0         0
+29193                             من ابتكر المثلجات؟  يعتقد علماء المسلمين أنّ القرآن نزل بلسانٍ عرب...             مبتكرات القرآن  ...    15511  5150132#1         0
+29194                             من ابتكر المثلجات؟  • “The War in Lebanon: its origins and courses...                  نواف سلام  ...    15511  820381#19         0
+29195                             من ابتكر المثلجات؟  من أعماله الروائيّة:\n• “دنيا”، 1993\n• “المعج...               محمود طرشونة  ...    15511   161306#2         0
+29196                             من ابتكر المثلجات؟  في عام 1810 اخترع العامل الكهربائي التقني ألكس...            التلغراف السلكي  ...    15511  1295397#0         0
+
+[29197 rows x 8 columns]
+--------------------------------------------------
+
+语言: bn
+数据示例:                                                   query                                           doc_text                doc_title  ... query_id    doc_id relevance
+0     ইংরেজ আন্তর্জাতিক ক্রিকেট তারকা জর্জ গিবসন ম্য...  জর্জ গিবসন ম্যাকাউলি বা, জর্জ ম্যাকাউলে (; জন্...           জর্জ ম্যাকাউলি  ...        4  717942#0         1
+1     ইংরেজ আন্তর্জাতিক ক্রিকেট তারকা জর্জ গিবসন ম্য...  জর্জ গিয়েরি (; জন্ম: ৯ জুলাই, ১৮৯৩ - মৃত্যু: ...             জর্জ গিয়েরি  ...        4  659471#0         0
+2     ইংরেজ আন্তর্জাতিক ক্রিকেট তারকা জর্জ গিবসন ম্য...  জর্জ ডাকওয়ার্থ (; জন্ম: ৯ মে, ১৯০১ - মৃত্যু: ...          জর্জ ডাকওয়ার্থ  ...        4  663248#0         0
+3     ইংরেজ আন্তর্জাতিক ক্রিকেট তারকা জর্জ গিবসন ম্য...  জর্জ গান (; জন্ম: ১৩ জুন, ১৮৭৯ - মৃত্যু: ২৯ জু...                 জর্জ গান  ...        4  626097#0         0
+4     ইংরেজ আন্তর্জাতিক ক্রিকেট তারকা জর্জ গিবসন ম্য...  গ্রাহাম ডগলাস ম্যাকেঞ্জি (; জন্ম: ২৪ জুন, ১৯৪১...       গ্রাহাম ম্যাকেঞ্জি  ...        4  468729#0         0
+...                                                 ...                                                ...                      ...  ...      ...       ...       ...
+4201               বাংলা ব্যাকরণ মতে বিশেষণ কয় প্রকার ?  বঙ্গীয় সাহিত্য পরিষদের একটি সভায় (১৯০১) পঠিত...            বাংলা ব্যাকরণ  ...     2152   1589#23         0
+4202               বাংলা ব্যাকরণ মতে বিশেষণ কয় প্রকার ?  বাঙালি কর্তৃক বাংলা ভাষায় ব্যাকরণ রচনার প্রথম...            বাংলা ব্যাকরণ  ...     2152   1589#13         0
+4203               বাংলা ব্যাকরণ মতে বিশেষণ কয় প্রকার ?  সর্বনাম অর্থ সর্বের নাম (ষষ্ঠী তৎপুরুষ সমাস)। ...                  সর্বনাম  ...     2152  342399#0         0
+4204               বাংলা ব্যাকরণ মতে বিশেষণ কয় প্রকার ?  পশ্চিমবঙ্গে আধুনিক ভাষাবিজ্ঞানের চর্চা শুরু হয...            বাংলা ব্যাকরণ  ...     2152   1589#30         0
+4205               বাংলা ব্যাকরণ মতে বিশেষণ কয় প্রকার ?  চাণিক্য, মাণিক্য, কণা, গৌণ, নিপুণ, বাণিজ্য, লব...  ণত্ব বিধান ও ষত্ব বিধান  ...     2152   14254#2         0
+
+[4206 rows x 8 columns]
+--------------------------------------------------
+
+语言: de
+数据示例:                                                   query                                           doc_text                  doc_title  ...   query_id      doc_id relevance
+0     Wo ist das Gebiet der Irokesen-Indianer in Kan...  Zu Beginn des 17. Jahrhunderts lebten die Irok...                   Irokesen  ...    81674#0     36951#5         1
+1     Wo ist das Gebiet der Irokesen-Indianer in Kan...  Die Irokesen (französisch "Iroquois"), Eigenbe...                   Irokesen  ...    81674#0     36951#0         1
+2     Wo ist das Gebiet der Irokesen-Indianer in Kan...  Die Sankt-Lorenz-Irokesen lebten bis in das sp...      Sankt-Lorenz-Irokesen  ...    81674#0   3046530#0         1
+3     Wo ist das Gebiet der Irokesen-Indianer in Kan...  Absolute Dunkelheit oder Beschränkung auf Lich...  Dunkelkammer (Fotografie)  ...    81674#0    114931#1         1
+4     Wo ist das Gebiet der Irokesen-Indianer in Kan...  Die meisten Indianer auf dem Gebiet des heutig...     New York (Bundesstaat)  ...    81674#0     3590#31         0
+...                                                 ...                                                ...                        ...  ...        ...         ...       ...
+3139  Wie viele Sprachen gibt es insgesamt auf der W...  Es gibt weltweit 24 Sprachfamilien und eine is...    Sprachfamilien der Welt  ...  3223301#0   1478022#6         0
+3140  Wie viele Sprachen gibt es insgesamt auf der W...  Insgesamt gibt es 29 eurasische genetische Ein...    Sprachfamilien der Welt  ...  3223301#0  1478022#18         0
+3141  Wie viele Sprachen gibt es insgesamt auf der W...  Es gibt etwa 250 bekannt gewordene australisch...    Sprachfamilien der Welt  ...  3223301#0  1478022#25         0
+3142  Wie viele Sprachen gibt es insgesamt auf der W...  Insgesamt gibt es in der SIL-Klassifizierung 6...              Maya-Sprachen  ...  3223301#0    750127#9         0
+3143  Wie viele Sprachen gibt es insgesamt auf der W...  Die bedeutendsten mittelamerikanischen Sprachf...    Sprachfamilien der Welt  ...  3223301#0  1478022#39         0
+
+[3144 rows x 8 columns]
+--------------------------------------------------
+
+语言: en
+数据示例:                                                   query                                           doc_text                           doc_title  ... query_id       doc_id relevance
+0                         Is Creole a pidgin of French?  At the end of World War II in 1945, Korea was ...           Eighth United States Army  ...        0     462221#4         1
+1                         Is Creole a pidgin of French?  The large size of Texas and its location at th...                               Texas  ...        0     29810#23         1
+2                         Is Creole a pidgin of French?  A French creole, or French-based creole langua...       French-based creole languages  ...        0    3716905#0         1
+3                         Is Creole a pidgin of French?  There are many hypotheses on the origins of Ha...                  Haitian literature  ...        0  22399755#18         1
+4                         Is Creole a pidgin of French?  Louisiana Creole is a contact language that ar...                    Louisiana Creole  ...        0    1170520#2         0
+...                                                 ...                                                ...                                 ...  ...      ...          ...       ...
+8345  Who was costume designer for the first Star Wa...  Chris Chris is a Star Wars fan who first met N...              The Norm (comic strip)  ...     4443   6120183#17         0
+8346  Who was costume designer for the first Star Wa...  Costume designer Isis Mussenden designed the c...                      Princess Fiona  ...     4443   2050495#12         0
+8347  Who was costume designer for the first Star Wa...  Fletcher had a long association with the scien...  Robert Fletcher (costume designer)  ...     4443   21747546#2         0
+8348  Who was costume designer for the first Star Wa...  The Starfleet uniforms were redesigned for the...            Star Trek: First Contact  ...     4443     27097#21         0
+8349  Who was costume designer for the first Star Wa...  Kaplan reunited with Abrams for the first film...   Michael Kaplan (costume designer)  ...     4443    8132416#3         0
+
+[8350 rows x 8 columns]
+--------------------------------------------------
+
+语言: es
+数据示例:                                                   query                                           doc_text                                          doc_title  ...   query_id     doc_id relevance
+0                            ¿Qué es Anónimo de Rávena?  El Anónimo de Rávena (Ravennatis Anonymi Cosmo...                                  Anónimo de Rávena  ...  1177652#0  1480851#0         1
+1                            ¿Qué es Anónimo de Rávena?  Se trata más que de una "cosmographia", como e...                                  Anónimo de Rávena  ...  1177652#0  1480851#1         1
+2                            ¿Qué es Anónimo de Rávena?  La Cosmografía de Rávena () es una lista de to...                              Cosmografía de Rávena  ...  1177652#0  9741026#0         1
+3                            ¿Qué es Anónimo de Rávena?  Después de las conquistas de Belisario para el...                                             Ravena  ...  1177652#0   152560#9         0
+4                            ¿Qué es Anónimo de Rávena?  Agnello de Rávena o Andrea Agnello, fue un clé...                                  Agnello de Rávena  ...  1177652#0  9501566#0         0
+...                                                 ...                                                ...                                                ...  ...        ...        ...       ...
+6438  ¿En qué categoría fue campeón el piloto Ricard...  En 1977 Ricardo se convierte, junto con Ángel ...                                      Ricardo Tormo  ...  7523671#0   166830#7         1
+6439  ¿En qué categoría fue campeón el piloto Ricard...  También en 50cc, el título está prácticamente ...     Gran Premio de Bélgica de Motociclismo de 1981  ...  7523671#0  8862131#3         1
+6440  ¿En qué categoría fue campeón el piloto Ricard...  En la categoría de menor cilindrada, se impuso...  Gran Premio de los Países Bajos de Motociclism...  ...  7523671#0  8863753#5         1
+6441  ¿En qué categoría fue campeón el piloto Ricard...  Se proclamó dos veces campeón del mundo en la ...                                      Ricardo Tormo  ...  7523671#0   166830#2         0
+6442  ¿En qué categoría fue campeón el piloto Ricard...  La temporada de 1978, el mismo año en el que s...                                      Ricardo Tormo  ...  7523671#0   166830#8         0
+
+[6443 rows x 8 columns]
+--------------------------------------------------
+
+语言: fa
+数据示例:                                               query                                           doc_text                           doc_title  ...   query_id     doc_id relevance
+0     سیاستمداران آمریکایی را چه کسی انتخاب می کند؟  در سطح دولت فدرال، رئیس‌جمهور از طریق یک سیستم...     انتخابات در ایالات متحده آمریکا  ...  5428682#0   110009#5         1
+1     سیاستمداران آمریکایی را چه کسی انتخاب می کند؟  رئیس کشور (رئیس‌جمهور) و مجلس قانون‌گذار با ان...         سیاست ایالات فدرال میکرونزی  ...  5428682#0  4703716#4         1
+2     سیاستمداران آمریکایی را چه کسی انتخاب می کند؟  مجلس سنای آمریکا ۱۰۰ عضو دارد که هر کدام برای ...     انتخابات در ایالات متحده آمریکا  ...  5428682#0  110009#25         1
+3     سیاستمداران آمریکایی را چه کسی انتخاب می کند؟  در ابتدا شیوه انتخاب اعضای هیئت‌های انتخاباتی ...  کالج انتخاباتی ایالات متحده آمریکا  ...  5428682#0   432923#4         1
+4     سیاستمداران آمریکایی را چه کسی انتخاب می کند؟  ران کلِیْن (؛ زادهٔ ) سیاست‌مدار اهل ایالات مت...                            ران کلین  ...  5428682#0  5432107#0         1
+...                                             ...                                                ...                                 ...  ...        ...        ...       ...
+6566       سینمای میانماربه چه فیلم هایی شهرت دارد؟  نیوه مانگ فیلم سینمایی محصول ایران، اتریش و فر...                           نیوه‌مانگ  ...  5174269#0   222961#0         0
+6567       سینمای میانماربه چه فیلم هایی شهرت دارد؟  موزه سینمای میانمار (انگلیسی: Myanmar Motion P...                      سینمای میانمار  ...  5174269#0  5174269#7         0
+6568       سینمای میانماربه چه فیلم هایی شهرت دارد؟  مازیار میری (زاده ۱۳ بهمن ۱۳۵۲ در تهران، محله ...                         مازیار میری  ...  5174269#0   306160#0         0
+6569       سینمای میانماربه چه فیلم هایی شهرت دارد؟  نخستین ساختهٔ محمدی فیلم "زنان بدون سایه" است ...                         مهناز محمدی  ...  5174269#0   928240#6         0
+6570       سینمای میانماربه چه فیلم هایی شهرت دارد؟  سال ۲۰۱۳ سال پرباری برای نوئمی بود و او سینما ...                         نوئمی مرلان  ...  5174269#0  3594943#6         0
+
+[6571 rows x 8 columns]
+--------------------------------------------------
+
+语言: fi
+数据示例:                                      query                                           doc_text  doc_title  ... query_id    doc_id relevance
+0                       Mitä on altruismi?  Etiikassa altruismi on oppi, jonka mukaan teon...  Altruismi  ...        1   18044#1         1
+1                       Mitä on altruismi?  Altruismi (, ”toinen”) tarkoittaa epäitsekästä...  Altruismi  ...        1   18044#0         1
+2                       Mitä on altruismi?  Evoluutiobiologiassa altruismi määritellään to...  Altruismi  ...        1  18044#10         0
+3                       Mitä on altruismi?  Altruismin voidaan esittää olevan myös näennäi...  Altruismi  ...        1   18044#4         0
+4                       Mitä on altruismi?  Modernit moraalifilosofit ovat yleensä sitä mi...  Altruismi  ...        1   18044#2         0
+...                                    ...                                                ...        ...  ...      ...       ...       ...
+12003                     Onko ruis rehua?  Suomalaisista viljalajeista vehnä ja ruis lask...      Vilja  ...     8235  50327#12         1
+12004  Onko Bowser Marion arkkivihollinen?  Bowser on Marion arkkivihollinen ja Koopa-kilp...     Bowser  ...     8305  122347#2         1
+12005  Onko Bowser Marion arkkivihollinen?  Baby Bowser on Bowser nuorempana. Se on sama h...     Bowser  ...     8305  122347#5         0
+12006  Onko Bowser Marion arkkivihollinen?  Bowser on myös esiintynyt poikansa Bowser Jr.:...     Bowser  ...     8305  122347#6         0
+12007  Onko Bowser Marion arkkivihollinen?  Bowserin hirviömäisin muoto on nimeltään Giga ...     Bowser  ...     8305  122347#4         0
+
+[12008 rows x 8 columns]
+--------------------------------------------------
+
+语言: fr
+数据示例:                                                 query                                           doc_text                                       doc_title  ...    query_id      doc_id relevance
+0        Qu'est-ce que c'est une famille patricienne?  Les familles patriciennes de Gênes désignent l...                  Familles patriciennes de Gênes  ...   5607241#0   3692250#0         1
+1        Qu'est-ce que c'est une famille patricienne?  Dans les territoires de l'ancien Saint-Empire ...         Patricien (Moyen Âge et Temps modernes)  ...   5607241#0  13853489#2         1
+2        Qu'est-ce que c'est une famille patricienne?  Les familles patriciennes de la République rom...                                       Patricien  ...   5607241#0   312255#23         0
+3        Qu'est-ce que c'est une famille patricienne?  La famille Patry est une famille patricienne g...                                   Famille Patry  ...   5607241#0  11574018#0         0
+4        Qu'est-ce que c'est une famille patricienne?  Les premières familles romaines sont appelées ...                              République romaine  ...   5607241#0  6873881#23         0
+...                                               ...                                                ...                                             ...  ...         ...         ...       ...
+3424  Combien y a-t-il d'éléments chimiques au total?  Ce tableau fonctionne parfaitement jusqu'aux d...                                Élément chimique  ...  10579479#0    15349#45         1
+3425  Combien y a-t-il d'éléments chimiques au total?  Un élément chimique est la classe des atomes d...                                Élément chimique  ...  10579479#0     15349#0         0
+3426  Combien y a-t-il d'éléments chimiques au total?  Les éléments chimiques sont identifiés dans le...                 Tableau périodique des éléments  ...  10579479#0     3009#37         0
+3427  Combien y a-t-il d'éléments chimiques au total?  Les presque minéraux recensés par l'Associatio...  Diversité minéralogique des éléments chimiques  ...  10579479#0   9011015#0         0
+3428  Combien y a-t-il d'éléments chimiques au total?  Un élément chimique ne peut pas se transformer...                                Élément chimique  ...  10579479#0     15349#3         0
+
+[3429 rows x 8 columns]
+--------------------------------------------------
+
+语言: hi
+数据示例:                                                   query                                           doc_text                  doc_title  ...   query_id     doc_id relevance
+0                          कांग्रेस दल का नेता कौन है ?  1947 में भारत की स्वतन्त्रता के बाद से भारतीय ...  भारतीय राष्ट्रीय कांग्रेस  ...  1033752#0    6394#10         1
+1                          कांग्रेस दल का नेता कौन है ?  गरम दल भारतीय राष्ट्रीय काँग्रेस के अन्दर ही स...                     गरम दल  ...  1033752#0   659567#0         1
+2                          कांग्रेस दल का नेता कौन है ?  सन 1985 के बाद से वह कांग्रेस की पश्चिम बंगाल ...              प्रणब मुखर्जी  ...  1033752#0    31181#4         1
+3                          कांग्रेस दल का नेता कौन है ?  जनता दल (सेक्युलर) भारत का एक राजनैतिक दल है ज...         जनता दल (सेक्युलर)  ...  1033752#0   823134#0         0
+4                          कांग्रेस दल का नेता कौन है ?  पार्टी के वर्तमान चेहरे काशी सिंह ऐरी, उत्तराख...     उत्तराखण्ड क्रान्ति दल  ...  1033752#0   192871#4         0
+...                                                 ...                                                ...                        ...  ...        ...        ...       ...
+3489  हाल ही में पद्म श्री पुरस्कार से सम्मानित किस ...  ज्ञानपीठ पुरस्कार और पद्म भूषण से सम्मानित तथा...              श्रीलाल शुक्ल  ...   727434#0     9699#5         0
+3490  हाल ही में पद्म श्री पुरस्कार से सम्मानित किस ...  पण्डित जगदीश प्रसाद (१९३७ – १८ जुलाई २०११) कलक...               जगदीश प्रसाद  ...   727434#0   570196#0         0
+3491  हाल ही में पद्म श्री पुरस्कार से सम्मानित किस ...  उदित नारायण झा एक प्रसिद्ध भारतीय पार्श्वगायक ...                उदित नारायण  ...   727434#0     8552#0         0
+3492  हाल ही में पद्म श्री पुरस्कार से सम्मानित किस ...  गोपी चंद नारंग और शमसुर रहमान फारूकी के बाद का...            अबुल कलाम कासमी  ...   727434#0  1298007#4         0
+3493  हाल ही में पद्म श्री पुरस्कार से सम्मानित किस ...  बृज बिहारी चौबे (१ जुलाई १९४० – १० मई २०१४) वे...            बृज बिहारी चौबे  ...   727434#0   572604#0         0
+
+[3494 rows x 8 columns]
+--------------------------------------------------
+
+语言: id
+数据示例:                                 query                                           doc_text                doc_title  ... query_id    doc_id relevance
+0     Dimana James Hepburn meninggal?  Ia meninggal pada 21 September 1911 di East Or...     James Curtis Hepburn  ...        3  115796#6         1
+1     Dimana James Hepburn meninggal?  Pada awal 1625, James dilanda oleh serangan-se...     James Charles Stuart  ...        3  77689#48         1
+2     Dimana James Hepburn meninggal?  Pada tahun 1859, Hepburn pergi ke Jepang untuk...     James Curtis Hepburn  ...        3  115796#2         0
+3     Dimana James Hepburn meninggal?  Ayahanda James, Darnley, dibunuh pada tanggal ...     James Charles Stuart  ...        3   77689#5         0
+4     Dimana James Hepburn meninggal?  Hepburn lahir di Milton, Pennsylvania pada 13 ...     James Curtis Hepburn  ...        3  115796#1         0
+...                               ...                                                ...                      ...  ...      ...       ...       ...
+9663   Kapan sepeda motor ditemukan ?  PT. MINERVA MOTOR INDONESIA berdiri tahun 200 ...             Sepeda motor  ...     6138  18525#10         0
+9664   Kapan sepeda motor ditemukan ?  Gerak langsung roda bermotor ini dikembangkan ...              Smith Flyer  ...     6138  436390#1         0
+9665   Kapan sepeda motor ditemukan ?  PT Astra Honda Motor (AHM) merupakan pelopor i...        Astra Honda Motor  ...     6138   65176#1         0
+9666   Kapan sepeda motor ditemukan ?  Baru pada 1839, Kirkpatrick MacMillan, pandai ...                   Sepeda  ...     6138   15978#4         0
+9667   Kapan sepeda motor ditemukan ?  Kelas MotoGP merupakan kelas utama dari kejuar...  Grand Prix Sepeda Motor  ...     6138  41402#28         0
+
+[9668 rows x 8 columns]
+--------------------------------------------------
+
+语言: ja
+数据示例:                             query                                           doc_text     doc_title                      sample1                                            sample2 query_id     doc_id  relevance
+0     “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  “ダン”こと、ダニエル・ジャドソン・キャラハンは1890年7月26日、カリフォルニア州サンフ...  ダニエル・J・キャラハン  “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダニエル・J・キャラハン “ダン”こと、ダニエル・ジャドソン・キャラハンは1890年7月26...        0  2681119#1          1
+1     “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  “ダン” ダニエル・ジャドソン・キャラハン（Daniel Judson Callaghan,...  ダニエル・J・キャラハン  “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダニエル・J・キャラハン “ダン” ダニエル・ジャドソン・キャラハン（Daniel Juds...        0  2681119#0          0
+2     “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダニエルは、父キャラウェイ・ダニエル(Calaway Daniel)と、母ルシンダ(Luci...     ジャック・ダニエル  “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ジャック・ダニエル ダニエルは、父キャラウェイ・ダニエル(Calaway Daniel)と、...        0  1113240#1          0
+3     “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダニエル（ダン）・ジェイコブソン（Daniel "Dan" Jacobson, 1929年3...    ダン・ジェイコブソン  “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダン・ジェイコブソン ダニエル（ダン）・ジェイコブソン（Daniel "Dan" Jacob...        0   343986#0          0
+4     “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダニエル・クレイボーン・ハドソン（Daniel Claiborne Hudson, 1987...     ダニエル・ハドソン  “ダン” ダニエル・ジャドソン・キャラハンの出身はどこ  ダニエル・ハドソン ダニエル・クレイボーン・ハドソン（Daniel Claiborne Hu...        0  2194424#0          0
+...                           ...                                                ...           ...                          ...                                                ...      ...        ...        ...
+8349                 彭 徳懐はいつ生まれた？  1954年9月、中華人民共和国憲法制定による政府機構の再編が行われ、最高国家行政機関として国...           彭徳懐                 彭 徳懐はいつ生まれた？  彭徳懐 1954年9月、中華人民共和国憲法制定による政府機構の再編が行われ、最高国家行政機関...     4629   197987#8          0
+8350                 彭 徳懐はいつ生まれた？  山東省生まれ。父親は町の文化会館の館長、母親は劇団員という芸術一家にて育つ。親族に中国国民党...           彭麗媛                 彭 徳懐はいつ生まれた？  彭麗媛 山東省生まれ。父親は町の文化会館の館長、母親は劇団員という芸術一家にて育つ。親族に中...     4629  1929782#2          0
+8351                 彭 徳懐はいつ生まれた？  彭帥は父親が警察官という家庭に生まれ、8歳の時からおじの勧めでテニスを始めた。2000年から...            彭帥                 彭 徳懐はいつ生まれた？  彭帥 彭帥は父親が警察官という家庭に生まれ、8歳の時からおじの勧めでテニスを始めた。2000...     4629  1488500#1          0
+8352                 彭 徳懐はいつ生まれた？  彭徳懐故居（ほうとくかいこきょ）は、中華人民共和国の政治家で軍人（中華人民共和国元帥）だった...         彭徳懐故居                 彭 徳懐はいつ生まれた？  彭徳懐故居 彭徳懐故居（ほうとくかいこきょ）は、中華人民共和国の政治家で軍人（中華人民共和国...     4629  3255343#0          0
+8353                 彭 徳懐はいつ生まれた？  彭徳懐は入党後まもなく平江での武装蜂起を指揮し、中国工農紅軍紅五軍を結成する。彭徳懐の部隊は...           彭徳懐                 彭 徳懐はいつ生まれた？  彭徳懐 彭徳懐は入党後まもなく平江での武装蜂起を指揮し、中国工農紅軍紅五軍を結成する。彭徳懐...     4629   197987#3          0
+
+[8354 rows x 8 columns]
+--------------------------------------------------
+
+语言: ko
+数据示例:                                       query                                           doc_text doc_title  ... query_id     doc_id relevance
+0     합성생물학을 연구하는 방식은 탑다운 외 다른 방식은 무엇이 있나요?  연구방식은 크게 두 가지로 나눌 수 있다. 이는 탑다운(Top-down)방식과 바텀...     합성생물학  ...        2   317339#6         1
+1     합성생물학을 연구하는 방식은 탑다운 외 다른 방식은 무엇이 있나요?  생물 방어와 관련된 바이오센서들이 관심을 받고 있고, 이는 여러 방면으로 활용이 가...     합성생물학  ...        2   317339#9         0
+2     합성생물학을 연구하는 방식은 탑다운 외 다른 방식은 무엇이 있나요?  생물안보는 의도적으로 병균이나 독성물질을 훔치거나 생태계에 방출하는 경우, 바이오 ...     합성생물학  ...        2  317339#11         0
+3     합성생물학을 연구하는 방식은 탑다운 외 다른 방식은 무엇이 있나요?  생물치료약물(live therapeutic agent)은 살아있는 치료제를 말하며 ...     합성생물학  ...        2   317339#8         0
+4     합성생물학을 연구하는 방식은 탑다운 외 다른 방식은 무엇이 있나요?  합성생물학(Synthetic Biology) 혹은 합성생명학은 생명과학(Life S...     합성생물학  ...        2   317339#0         0
+...                                     ...                                                ...       ...  ...      ...        ...       ...
+3052                     인체에는 몇 개의 세포가 있는가?  세포를 분류하는 하나의 방법은 스스로 살아가는가, 집단을 이루어 살아가는가 하는 것...        세포  ...     1582    47385#5         0
+3053                     인체에는 몇 개의 세포가 있는가?  세포에는 진핵세포와 원핵세포 두 종류가 있다. 원핵세포가 일반적으로 그 스스로 생명...        세포  ...     1582   47385#15         0
+3054                     인체에는 몇 개의 세포가 있는가?  세포배의 난할구(blastomere)라고 불리는 각각의 세포는 추가적인 분할(cal...     내세포집단  ...     1582  1937183#5         0
+3055                     인체에는 몇 개의 세포가 있는가?  일반적으로 사람의 망막에는 간상세포와 원추세포의 두 종류의 세포가 존재한다. 원추세...     색각 이상  ...     1582   234912#3         0
+3056                     인체에는 몇 개의 세포가 있는가?  인간의 몸에서는 32억 개의 염기쌍이 DNA에 복제되는데, 이들은 23쌍의 염색체에...     어윈 로즈  ...     1582   76034#30         0
+
+[3057 rows x 8 columns]
+--------------------------------------------------
+
+语言: ru
+数据示例:                                   query                                           doc_text                    doc_title  ... query_id      doc_id relevance
+0      Когда начался Кари́бский кризис?  Кари́бский кризис — исторический термин, опред...             Карибский кризис  ...        0    105156#0         1
+1      Когда начался Кари́бский кризис?  Политическое, дипломатическое и военное против...    Громыко, Андрей Андреевич  ...        0    36716#23         1
+2      Когда начался Кари́бский кризис?  В октябре 1962 года произошел Карибский кризис...  Президентство Джона Кеннеди  ...        0  6949493#75         1
+3      Когда начался Кари́бский кризис?  Первоначально, после победы революции на Кубе ...             Карибский кризис  ...        0    105156#4         0
+4      Когда начался Кари́бский кризис?  Невозможно однозначно утверждать, стало ли уда...             Карибский кризис  ...        0   105156#79         0
+...                                 ...                                                ...                          ...  ...      ...         ...       ...
+13095        Кто убил Зорана Джинджича?  Смерть Зорана Джинджича была констатирована в ...    Убийство Зорана Джинджича  ...     6762  5244374#23         0
+13096        Кто убил Зорана Джинджича?  Аресты по делу Джинджича, однако, продолжились...    Убийство Зорана Джинджича  ...     6762  5244374#48         0
+13097        Кто убил Зорана Джинджича?  Ратомир Живкович обвинил в организации убийств...    Убийство Зорана Джинджича  ...     6762  5244374#37         0
+13098        Кто убил Зорана Джинджича?  В 12:25 (по свидетельству Биляны Станков и вод...    Убийство Зорана Джинджича  ...     6762  5244374#20         0
+13099        Кто убил Зорана Джинджича?  В середине февраля 2003 года группа заговорщик...    Убийство Зорана Джинджича  ...     6762  5244374#14         0
+
+[13100 rows x 8 columns]
+--------------------------------------------------
+
+语言: sw
+数据示例:                                      query                                           doc_text             doc_title  ... query_id    doc_id relevance
+0     Bandari kubwa nchini Kenya iko wapi?  Bandari ya Kilindini ni hori kubwa asili ya ma...  Bandari ya Kilindini  ...        6   32589#0         1
+1     Bandari kubwa nchini Kenya iko wapi?  Uchumi wa Mombasa na nchi ya Kenya kwa jumla h...     Kaunti ya Mombasa  ...        6   93957#6         1
+2     Bandari kubwa nchini Kenya iko wapi?  Mji huu, pamoja na mji dada yake wa Busia, Ken...         Busia, Uganda  ...        6   33690#3         0
+3     Bandari kubwa nchini Kenya iko wapi?  Kwa karne nyingi, upwa wa Kenya umekuwa mwenye...                 Kenya  ...        6   1676#26         0
+4     Bandari kubwa nchini Kenya iko wapi?  Nairobi inaendelea kuwa kituo muhimu na cha ki...                 Kenya  ...        6  1676#117         0
+...                                    ...                                                ...                   ...  ...      ...       ...       ...
+5087     Paul Schulze alizaliwa mwaka upi?  Paul Newman (26 Januari 1925 - 26 Septemba 200...           Paul Newman  ...     2597   17673#0         0
+5088     Paul Schulze alizaliwa mwaka upi?  Louis Aston Marantz Simpson (27 Machi 1923 – 1...         Louis Simpson  ...     2597   87296#0         0
+5089     Paul Schulze alizaliwa mwaka upi?  Paul Scholes (alizaliwa 16 Novemba 1974) aliku...          Paul Scholes  ...     2597  104258#0         0
+5090     Paul Schulze alizaliwa mwaka upi?  Alizaliwa katika eneo la Innsbruck akiwa mwana...     Johann Paul Schor  ...     2597   35276#1         0
+5091     Paul Schulze alizaliwa mwaka upi?  Alizaliwa mnamo 1981 katika sehemu ya Cheplang...   Paul Kipsiele Koech  ...     2597   34586#1         0
+
+[5092 rows x 8 columns]
+--------------------------------------------------
+
+语言: te
+数据示例:                                                query                                           doc_text               doc_title  ... query_id    doc_id relevance
+0          ఆర్మేనియా దేశంలో మొత్తం జిల్లాలు ఉన్నాయి?  దవ్తాషెన్, ఆర్మేనియా దేశ రాజధానయిన యెరెవాన్లో ...        దవ్తాషెన్ జిల్లా  ...        2  259006#0         1
+1           పాల్ లెనార్డ్ న్యూమాన్ తండ్రి పేరేమిటి ?  న్యూమాన్ , ఒహియో, షేకర్ హైట్స్ (క్లీవ్లాండ్ యొ...           పాల్ న్యూమాన్  ...       15  105605#2         1
+2                        హెమింగ్వే ఎప్పుడు పుట్టాడు?  ఎర్నెస్ట్ హెమింగ్‌వే 1899 జూలై 21లో చికాగో శివ...    ఎర్నెస్ట్ హెమింగ్‌వే  ...       28  105922#4         1
+3                              భూమిపై నీటి శాతం ఎంత?  భూగోళం యొక్క బాహ్య పొరను ఎన్నో ఫలకాలుగా లేదా ట...                    భూమి  ...       35   34672#2         1
+4                  ఆనందీబాయి జోషి ఎప్పుడు పుట్టింది?  ఆనందీ గోపాల్ జోషి లేదా ఆనందీబాయి జోషి (ఆంగ్లం ...          ఆనందీబాయి జోషి  ...       37  141339#0         1
+...                                              ...                                                ...                     ...  ...      ...       ...       ...
+1601           శ్రీనివాస రామానుజన్ ఎక్కడ జన్మించాడు?  రామానుజన్ డిసెంబర్ 22, 1887 నాడు తమిళనాడు రాష్...     శ్రీనివాస రామానుజన్  ...     4841   74084#1         1
+1602               రాయలసీమలో ఎన్ని జిల్లాలు ఉన్నాయి?  ఆంధ్ర ప్రదేశ్ రాష్ట్ర్రంలో 13 జిల్లాలు ఉన్నాయి...  ఆంధ్ర ప్రదేశ్ జిల్లాలు  ...     4842    1570#0         1
+1603                 అమ్మోనియా రసాయనిక సూత్రం ఏంటి ?  అమ్మోనియా అనునది ఒక రసాయన సమ్మేళనం. నత్రజని మర...               అమ్మోనియా  ...     4849  206736#0         1
+1604          కందమూరు గ్రామంలోని పురుషుల సంఖ్య ఎంత ?  కందమూరు ఆంధ్ర ప్రదేశ్ రాష్ట్రం, శ్రీ పొట్టి శ్...                 కందమూరు  ...     4866   24557#0         1
+1605  తమన్నా భాటియా నటించిన మొదటి తెలుగు సినిమా ఏది?  తమన్నా భాటియా (జ. 1989 డిసెంబరు 21) తెలుగు, తమ...                  తమన్నా  ...     4869  132304#0         1
+
+[1606 rows x 8 columns]
+--------------------------------------------------
+
+语言: th
+数据示例:                                                   query                                           doc_text                                 doc_title  ... query_id     doc_id relevance
+0     บันทึกเหตุการณ์และเรื่องราวต่าง ๆ ในยุคสามก๊กฉ...  บันทึกเหตุการณ์และเรื่องราวต่าง ๆ ในยุคสามก๊กฉ...                                    สามก๊ก  ...        4     9800#4         1
+1     บันทึกเหตุการณ์และเรื่องราวต่าง ๆ ในยุคสามก๊กฉ...  โครงเรื่องหลักอ้างอิงเนื้อเรื่องจากประวัติศาสต...                            หงสาจอมราชันย์  ...        4    59039#1         0
+2     บันทึกเหตุการณ์และเรื่องราวต่าง ๆ ในยุคสามก๊กฉ...  หงสาจอมราชันย์ เป็นเรื่องที่ดัดแปลงมาจากวรรณกร...                            หงสาจอมราชันย์  ...        4    59039#3         0
+3     บันทึกเหตุการณ์และเรื่องราวต่าง ๆ ในยุคสามก๊กฉ...  เนื้อเรื่องเริ่มในตอนปลายของราชวงศ์ฮั่น กษัตริ...          สามก๊ก ฉบับเจ้าพระยาพระคลัง (หน)  ...        4   743196#3         0
+4     บันทึกเหตุการณ์และเรื่องราวต่าง ๆ ในยุคสามก๊กฉ...  อย่างไรก็ตาม ซานกั๋วจื้อ ก็มีอุปสรรคในการเขียน...                          จดหมายเหตุสามก๊ก  ...        4   165509#3         0
+...                                                 ...                                                ...                                       ...  ...      ...        ...       ...
+7568                             กรุงเทพมหานครมีกี่เขต?  เขตที่จัดตั้งขึ้นเมื่อวันที่ 24 สิงหาคม พ.ศ. 2...                รายชื่อเขตของกรุงเทพมหานคร  ...     4113     9672#2         0
+7569                             กรุงเทพมหานครมีกี่เขต?  ในอดีต (พ.ศ. 2553) สมาชิกสภากรุงเทพมหานคร มีจำ...                          สภากรุงเทพมหานคร  ...     4113    34706#2         0
+7570                             กรุงเทพมหานครมีกี่เขต?  แขวงสี่แยกมหานาค เป็นเขตการปกครองระดับแขวงหนึ่...                          แขวงสี่แยกมหานาค  ...     4113   246913#0         0
+7571                             กรุงเทพมหานครมีกี่เขต?  การแบ่งจังหวัดเป็นภูมิภาคด้วยระบบ กรุงเทพมหานค...                   กรุงเทพมหานครและปริมณฑล  ...     4113   104125#1         0
+7572                             กรุงเทพมหานครมีกี่เขต?  ศาลาว่าการกรุงเทพมหานคร เป็นที่ทำการของหน่วยงา...  กรุงเทพมหานคร (องค์กรปกครองส่วนท้องถิ่น)  ...     4113  235995#23         0
+
+[7573 rows x 8 columns]
+--------------------------------------------------
+
+语言: yo
+数据示例:                                          query                                           doc_text                          doc_title  ... query_id    doc_id relevance
+0     Odun wo ni wọn ṣe idije Olympiiki akọkọ?  Awon idije olympiki (ede Greeki: Ολυμπιακοί Αγ...                Àwọn Ìdíje Òlímpíkì  ...  10020#0   10020#1         1
+1     Odun wo ni wọn ṣe idije Olympiiki akọkọ?  Idije Olympiki {tabi Olympiki} je opolopo ere ...                Àwọn Ìdíje Òlímpíkì  ...  10020#0   10020#0         0
+2     Odun wo ni wọn ṣe idije Olympiiki akọkọ?  Leyin isele adaniloro Osu kesan 2001 ideru way...  Àwọn Ìdíje Òlímpíkì Ìgbà Oru 2004  ...  10020#0   53588#4         0
+3     Odun wo ni wọn ṣe idije Olympiiki akọkọ?  Ni (2012), [[CNN]] Irin-ajo ṣe akiyesi ahọn ol...             Omotola Jalade Ekeinde  ...  10020#0  15892#17         0
+4     Odun wo ni wọn ṣe idije Olympiiki akọkọ?  “Nigbati a kuro ni ibiti awọn ẹranko wọnyi wà ...     Ìrìnkèrindò nínú Igbó Elégbèje  ...  10020#0    2708#4         0
+...                                        ...                                                ...                                ...  ...      ...       ...       ...
+1183     Kí ni orúkọ bibi akọrin Naira Marley?  Robyn Rihanna Fenty (bíi Ọjọ́ ogún Ọdún 1988) ...                            Rihanna  ...   9593#0   60757#0         0
+1184     Kí ni orúkọ bibi akọrin Naira Marley?  Yẹmí Eberechi Àlàdé (ọjọ́ìbí 13 March 1989), t...                         Yẹmí Àlàdé  ...   9593#0   69686#0         0
+1185     Kí ni orúkọ bibi akọrin Naira Marley?  Lagbaja tí àpèjẹ́ orúkọ rẹ̀ ń jẹ́ Bísádé Ológu...                            Lagbaja  ...   9593#0   36902#0         0
+1186     Kí ni orúkọ bibi akọrin Naira Marley?  Banda jẹ́ eni tí ó bẹ̀rẹ̀ sí ní ní ìfẹ́ sí ori...                         Lily Banda  ...   9593#0   70646#1         0
+1187     Kí ni orúkọ bibi akọrin Naira Marley?  Panshak Henry Zamani, tí orúkọ orí ìtàgé rẹ̀ ń...                         Ice Prince  ...   9593#0   36891#0         0
+
+[1188 rows x 8 columns]
+--------------------------------------------------
+
+语言: zh
+数据示例:             query                                           doc_text    doc_title      sample1                                            sample2   query_id     doc_id  relevance
+0     二战是什么时候开始的？  一般認為戰爭是於1939年9月1日爆發，這樣的論點是以德國入侵波蘭做為起點，3天之後英國和法...      第二次世界大战  二战是什么时候开始的？  第二次世界大战 一般認為戰爭是於1939年9月1日爆發，這樣的論點是以德國入侵波蘭做為起點，...  1719936#0      305#4          1
+1     二战是什么时候开始的？  1939年9月1日凌晨4时许，德国军队依照希特勒蓄谋已久的作战方案，突然入侵波蘭，第二次世界...      温斯顿·丘吉尔  二战是什么时候开始的？  温斯顿·丘吉尔 1939年9月1日凌晨4时许，德国军队依照希特勒蓄谋已久的作战方案，突然入侵...  1719936#0   14224#35          1
+2     二战是什么时候开始的？  第二次世界大战，简称二战。是一次在1939年至1945年所爆发的全球军事冲突，整场战争涉及到...  第二次世界大战概览列表  二战是什么时候开始的？  第二次世界大战概览列表 第二次世界大战，简称二战。是一次在1939年至1945年所爆发的全球...  1719936#0  7172516#1          1
+3     二战是什么时候开始的？  第二次世界大戰，簡稱二戰，是1939年（乃至1931年）至1945年爆發的全球軍事衝突。第二...      第二次世界大战  二战是什么时候开始的？  第二次世界大战 第二次世界大戰，簡稱二戰，是1939年（乃至1931年）至1945年爆發的全...  1719936#0      305#0          1
+4     二战是什么时候开始的？  第二次世界大戰發生在亞洲和歐洲，雖然早在1937年日本便與中國爆發了中日戰爭，不過大多數人仍...         世界大戰  二战是什么时候开始的？  世界大戰 第二次世界大戰發生在亞洲和歐洲，雖然早在1937年日本便與中國爆發了中日戰爭，不過...  1719936#0    51593#5          1
+...           ...                                                ...          ...          ...                                                ...        ...        ...        ...
+3923   中国女足有哪些成绩？  2014年9月26日，2014年仁川亚运会女足1/4决赛，中国女足0-1不敌朝鲜女足，历史上...    中国国家女子足球队   中国女足有哪些成绩？  中国国家女子足球队 2014年9月26日，2014年仁川亚运会女足1/4决赛，中国女足0-1...  5517620#0  614211#13          0
+3924   中国女足有哪些成绩？  2016年3月7日，中国女足在2016年奥运会女足比赛亚洲区预选赛中1-0力克近邻韩国女足，...    中国国家女子足球队   中国女足有哪些成绩？  中国国家女子足球队 2016年3月7日，中国女足在2016年奥运会女足比赛亚洲区预选赛中1-...  5517620#0  614211#15          0
+3925   中国女足有哪些成绩？  中国国家女子足球队是代表中华人民共和国出战国际赛场的女子足球队，多次在国际赛场中取得优异成绩...    中国国家女子足球队   中国女足有哪些成绩？  中国国家女子足球队 中国国家女子足球队是代表中华人民共和国出战国际赛场的女子足球队，多次在国...  5517620#0   614211#0          0
+3926   中国女足有哪些成绩？  球队在1999年的女足世界杯中势如破竹的打入决赛，在准决赛中更是以惊人的5-0狂扫前世界杯冠...    中国国家女子足球队   中国女足有哪些成绩？  中国国家女子足球队 球队在1999年的女足世界杯中势如破竹的打入决赛，在准决赛中更是以惊人的...  5517620#0   614211#7          0
+3927   中国女足有哪些成绩？  本届世界杯，中国女排取得何种成绩并未被过多人看好。亚锦赛中中国队在一传、防守小球串联等环节上...    中國國家女子排球隊   中国女足有哪些成绩？  中國國家女子排球隊 本届世界杯，中国女排取得何种成绩并未被过多人看好。亚锦赛中中国队在一传、...  5517620#0  122506#63          0
+
+[3928 rows x 8 columns]
+--------------------------------------------------
+

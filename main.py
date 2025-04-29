@@ -44,8 +44,8 @@ def parse_args():
     parser.add_argument("--api_model_names", type=str, nargs="+", default=[], help="API模型名称")
     parser.add_argument("--output_dir", type=str, default="project/models/pq_head", help="模型输出目录")
     parser.add_argument("--device", type=str, default='0', help="使用设备，如'0'表示cuda:0，'cpu'表示CPU")
-    parser.add_argument("--epochs", type=int, default=10, help="训练轮数")
-    parser.add_argument("--lr", type=float, default=5e-5, help="学习率")
+    parser.add_argument("--epochs", type=int, default=3, help="训练轮数")
+    parser.add_argument("--lr", type=float, default=2e-5, help="学习率")
     parser.add_argument('--l2', type=float, default=0.0, help='权重衰减')
     parser.add_argument("--batch_size", type=int, default=32, help="批次大小")
     parser.add_argument("--train_sample_ratio", type=float, default=1.0, help="训练数据采样比例")
@@ -57,13 +57,13 @@ def parse_args():
     parser.add_argument("--num_subvectors", type=int, default=256, help="子向量数量")
     parser.add_argument("--code_size", type=int, default=64, help="码本大小")
     parser.add_argument("--dataset", type=str, default="miracl", help="数据集名称")
-    parser.add_argument("--langs", type=str, nargs="+", default=["zh"], help="处理的语言")
+    parser.add_argument("--langs", type=str, nargs="+", default=["ar", "bn", "en", "es", "fi", "fr", "hi", "id", "ja", "ko", "ru", "sw", "te", "th", "zh", "fa"], help="处理的语言")
     parser.add_argument("--log_dir", type=str, default="logs/debug", help="日志目录")
     parser.add_argument("--log_file", type=str, default="debug.log", help="日志文件名")
     parser.add_argument("--model_name_with_params", action="store_true", default=False, help="模型名称是否包含参数")
     parser.add_argument("--init_pq_path", type=str, default="project/models/pq_head_kmeans_init/pq_head_best.pt", help="预初始化的PQ头路径，如果提供则从此路径加载初始化的码本")
     parser.add_argument("--attention_hidden_dim", type=int, default=256, help="注意力机制隐藏维度")
-    parser.add_argument("--attention_lr", type=float, default=None, help="注意力机制专用学习率，若不设置则使用全局学习率")
+    parser.add_argument("--attention_lr", type=float, default=0, help="注意力机制专用学习率，若不设置则使用全局学习率")
     parser.add_argument("--num_attention_heads", type=int, default=4, help="多头注意力的头数")
     
     return parser.parse_args()
@@ -109,6 +109,12 @@ def prepare_data(args):
         test_data = pd.read_pickle(dev_data_path)
         full_train_data = pd.read_pickle(train_data_path)
         
+        # 确保数据集包含lang列
+        if 'lang' not in test_data.columns:
+            test_data['lang'] = lang
+        if 'lang' not in full_train_data.columns:
+            full_train_data['lang'] = lang
+        
         # 训练集采样
         if args.train_sample_ratio < 1.0:
             train_size = max(1, int(len(full_train_data) * args.train_sample_ratio))
@@ -133,6 +139,9 @@ def prepare_data(args):
         data_path = Path(f"datasets/miracl/{lang}/dev/processed_data.pkl")
         if data_path.exists():
             lang_data = pd.read_pickle(data_path)
+            # 确保数据集包含lang列
+            if 'lang' not in lang_data.columns:
+                lang_data['lang'] = lang
             data_frames.append(lang_data)
     
     if not data_frames:
