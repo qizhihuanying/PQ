@@ -134,35 +134,52 @@ def prepare_data(args):
         return train_data, val_data, test_data
     
     # 处理多语言情况
-    data_frames = []
+    train_frames = []
+    test_frames = []
+    
     for lang in args.langs if args.langs else MIRACL_LANGUAGES:
-        data_path = Path(f"datasets/miracl/{lang}/dev/processed_data.pkl")
-        if data_path.exists():
-            lang_data = pd.read_pickle(data_path)
-            # 确保数据集包含lang列
-            if 'lang' not in lang_data.columns:
-                lang_data['lang'] = lang
-            data_frames.append(lang_data)
-    
-    if not data_frames:
-        raise ValueError("没有找到任何处理好的数据文件")
+        # 加载测试数据
+        dev_data_path = Path(f"datasets/miracl/{lang}/dev/processed_data.pkl")
+        if dev_data_path.exists():
+            dev_data = pd.read_pickle(dev_data_path)
+            if 'lang' not in dev_data.columns:
+                dev_data['lang'] = lang
+            test_frames.append(dev_data)
         
-    data = pd.concat(data_frames, ignore_index=True)
+        # 加载训练数据
+        train_data_path = Path(f"datasets/miracl/{lang}/train/processed_data.pkl")
+        if train_data_path.exists():
+            train_data = pd.read_pickle(train_data_path)
+            if 'lang' not in train_data.columns:
+                train_data['lang'] = lang
+            train_frames.append(train_data)
     
-    # 特殊处理：test_ratio=1.0时
-    if args.test_ratio >= 1.0:
-        return pd.DataFrame(), pd.DataFrame(), data
+    if not test_frames:
+        raise ValueError("没有找到任何处理好的测试数据文件")
+        
+    if not train_frames:
+        raise ValueError("没有找到任何处理好的训练数据文件")
     
-    # 拆分数据集
-    test_size = int(len(data) * args.test_ratio)
-    test_data = data.sample(n=test_size)
-    remaining_data = data.drop(test_data.index)
+    # 合并所有语言的数据
+    test_data = pd.concat(test_frames, ignore_index=True)
+    full_train_data = pd.concat(train_frames, ignore_index=True)
     
-    val_size = int(len(remaining_data) * args.val_ratio)
-    val_size = max(1, val_size)
-    val_data = remaining_data.sample(n=val_size)
-    train_data = remaining_data.drop(val_data.index)
-
+    # 训练集采样
+    if args.train_sample_ratio < 1.0:
+        train_size = max(1, int(len(full_train_data) * args.train_sample_ratio))
+        train_data = full_train_data.sample(n=train_size)
+    else:
+        train_data = full_train_data
+    
+    # 拆分验证集
+    if args.val_ratio > 0:
+        val_size = int(len(train_data) * args.val_ratio)
+        val_size = max(1, val_size)
+        val_data = train_data.sample(n=val_size)
+        train_data = train_data.drop(val_data.index)
+    else:
+        val_data = pd.DataFrame(columns=train_data.columns)
+    
     return train_data, val_data, test_data
 
 def get_unique_model_path(args):

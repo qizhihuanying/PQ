@@ -14,7 +14,7 @@ with open(output_file, "w", encoding="utf-8") as f_out:
     # 遍历每个语言目录
     for lang_dir in language_dirs:
         lang_code = os.path.basename(os.path.dirname(lang_dir))
-        pickle_path = os.path.join(lang_dir, "dev/processed_data.pkl")
+        pickle_path = os.path.join(lang_dir, "train/processed_data.pkl")
         
         # 检查pickle文件是否存在
         if os.path.exists(pickle_path):
