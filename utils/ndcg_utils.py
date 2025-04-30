@@ -137,7 +137,7 @@ def calculate_ndcg10(
                 
                 # 使用向量化操作计算查询与所有文档的相似度
                 sim_scores = torch.nn.functional.cosine_similarity(query_emb, corpus_emb_tensor, dim=1)
-                sim_scores = sim_scores.cpu().numpy()
+                sim_scores = sim_scores.detach().cpu().numpy()
                 
                 # 获取排序后的文档ID
                 sorted_indices = np.argsort(sim_scores)[::-1]
