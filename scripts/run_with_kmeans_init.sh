@@ -5,10 +5,10 @@ mkdir -p logs/dpq_kmeans_init_multiattention
 
 # 配置参数
 MODEL_NAME="intfloat/multilingual-e5-base"
-CORPUS_PATH="datasets/miracl/zh/train/corpus.jsonl"
+LANGS="ar bn en es fi fr hi id ja ko ru sw te th zh fa"
 INPUT_DIM=768
-LANGS="zh"
 LOG_DIR="logs/dpq_kmeans_init_multiattention"
+DATASET_SPLIT="dev"
 
 # 定义参数数组 - 保持原始配置
 GPU_IDS=(7 3 3 3 3)
@@ -82,14 +82,14 @@ while [ $processed -lt $total_combinations ]; do
                 
                 # python init_codebooks.py \
                 #     --model_name "$MODEL_NAME" \
-                #     --corpus_path "$CORPUS_PATH" \
+                #     --langs $LANGS \
                 #     --output_dir "$INIT_DIR" \
                 #     --device "$gpu_id" \
-                #     --sample_ratio 1.0 \
                 #     --batch_size 32 \
                 #     --input_dim "$INPUT_DIM" \
                 #     --num_subvectors "$sv" \
-                #     --code_size "$cs"
+                #     --code_size "$cs" \
+                #     --dataset_split "$DATASET_SPLIT"
 
                 python main.py \
                     --local_model_names "$MODEL_NAME" \

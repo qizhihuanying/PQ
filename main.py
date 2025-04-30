@@ -61,7 +61,7 @@ def parse_args():
     parser.add_argument("--log_dir", type=str, default="logs/debug", help="日志目录")
     parser.add_argument("--log_file", type=str, default="debug.log", help="日志文件名")
     parser.add_argument("--model_name_with_params", action="store_true", default=False, help="模型名称是否包含参数")
-    parser.add_argument("--init_pq_path", type=str, default="", help="预初始化的PQ头路径，如果提供则从此路径加载初始化的码本")
+    parser.add_argument("--init_pq_path", type=str, default="project/models/pq_head_kmeans_init/pq_head_best.pt", help="预初始化的PQ头路径，如果提供则从此路径加载初始化的码本")
     parser.add_argument("--attention_hidden_dim", type=int, default=256, help="注意力机制隐藏维度")
     parser.add_argument("--attention_lr", type=float, default=0, help="注意力机制专用学习率，若不设置则使用全局学习率")
     parser.add_argument("--num_attention_heads", type=int, default=4, help="多头注意力的头数")

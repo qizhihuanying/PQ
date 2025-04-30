@@ -10,13 +10,13 @@ INPUT_DIM=768
 LOG_DIR="logs/pq_experiments"
 
 # 定义 GPU 列表和每卡最大并发数
-GPUS=(4 5 6 7)
+GPUS=(4 5 6 2)
 MAX_PARALLEL=4
 
 # 参数数组
 SVS=(256)
 CSS=(64)
-LRS=(1e-5 3e-5 7e-5 1e-6 3e-6 7e-6 1e-4 3e-4 7e-4)
+LRS=(1e-5 3e-5 7e-5 1e-4 3e-4 7e-4 1e-6 3e-6 7e-6)
 L2S=(0 1e-6 3e-6 7e-6 1e-7 3e-7 7e-7 1e-8)
 
 # 初始化并发计数和 PID 映射
@@ -40,19 +40,36 @@ start_experiment() {
             --local_model_names "$MODEL_NAME" \
             --output_dir "$OUTPUT_DIR" \
             --device 0 \
-            --epochs 3 \
+            --epochs 5 \
             --lr "$lr" \
             --l2 "$l2" \
             --batch_size 128 \
             --use_pq \
             --input_dim "$INPUT_DIM" \
             --num_subvectors "$sv" \
+            --init_pq_path "project/models/pq_head_kmeans_init/pq_head_best.pt" \
             --code_size "$cs" \
             --log_dir "$LOG_DIR" \
             --log_file "$LOG_FILE"
     ) &
-    pid2gpu[$!]=$gpu
-    gpu_load[$gpu]=$((gpu_load[$gpu]+1))
+    local pid=$!
+    pid2gpu[$pid]=$gpu
+    gpu_load[$gpu]=$((gpu_load[$gpu] + 1))
+}
+
+# 检查并回收资源的函数
+wait_for_available_gpu() {
+    while true; do
+        for pid in "${!pid2gpu[@]}"; do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                finished_gpu=${pid2gpu[$pid]}
+                gpu_load[$finished_gpu]=$((gpu_load[$finished_gpu] - 1))
+                unset pid2gpu[$pid]
+                return
+            fi
+        done
+        sleep 1
+    done
 }
 
 # 循环提交任务
@@ -60,7 +77,6 @@ for sv in "${SVS[@]}"; do
     for cs in "${CSS[@]}"; do
         for lr in "${LRS[@]}"; do
             for l2 in "${L2S[@]}"; do
-                # 等待直到有 GPU 可用
                 while :; do
                     for gpu in "${GPUS[@]}"; do
                         if (( gpu_load[$gpu] < MAX_PARALLEL )); then
@@ -68,11 +84,8 @@ for sv in "${SVS[@]}"; do
                             break 2
                         fi
                     done
-                    # 若无 GPU 可用，则等待任一任务完成并释放资源
-                    finished_pid=$(wait -n)
-                    finished_gpu=${pid2gpu[$finished_pid]}
-                    gpu_load[$finished_gpu]=$((gpu_load[$finished_gpu]-1))
-                    unset pid2gpu[$finished_pid]
+                    # 等待某个 GPU 空出来
+                    wait_for_available_gpu
                 done
 
                 # 启动实验

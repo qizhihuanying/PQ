@@ -8,6 +8,7 @@ from transformers import AutoModel, AutoTokenizer
 from sklearn.cluster import KMeans
 import argparse
 import logging
+import os
 from product_quantization import PQHead
 
 logging.basicConfig(
@@ -20,23 +21,47 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 支持的语言列表
+ALL_LANGUAGES = ["ar", "bn", "en", "es", "fi", "fr", "hi", "id", "ja", "ko", "ru", "sw", "te", "th", "zh", "fa", "de", "yo"]
+
 def load_corpus(corpus_path):
     """加载语料库数据"""
     logger.info(f"加载语料库: {corpus_path}")
     
-    documents = []
+    documents = {}
     with open(corpus_path, "r", encoding="utf-8") as f:
         for line in tqdm(f, desc="加载语料"):
             try:
                 data = json.loads(line.strip())
                 if "text" in data:
+                    doc_id = str(data.get("docid", ""))
                     doc_text = data["text"]
-                    documents.append(doc_text)
+                    documents[doc_id] = doc_text
             except Exception as e:
                 logger.error(f"处理语料时出错: {e}")
     
     logger.info(f"共加载了 {len(documents)} 个文档")
     return documents
+
+def load_qrels(qrel_path):
+    """加载相关性评分文件，获取所有在qrel中使用的文档ID"""
+    logger.info(f"加载qrel文件: {qrel_path}")
+    
+    doc_ids = set()
+    try:
+        with open(qrel_path, encoding="utf-8") as f:
+            for line in tqdm(f, desc="加载qrel"):
+                try:
+                    qid, _, docid, _ = line.strip().split('\t')
+                    doc_ids.add(docid)
+                except ValueError:
+                    logger.error(f"格式错误的行: {line}")
+                    continue
+    except Exception as e:
+        logger.error(f"加载相关性文件失败: {qrel_path}, 错误: {e}")
+    
+    logger.info(f"qrel中包含 {len(doc_ids)} 个唯一文档ID")
+    return doc_ids
 
 def batch_encode_texts(texts, tokenizer, model, device, batch_size=32):
     """批量编码文本获取嵌入向量"""
@@ -89,16 +114,56 @@ def update_pq_head_codebooks(pq_head, codebooks):
 def parse_args():
     parser = argparse.ArgumentParser(description="使用K-means初始化PQ码本")
     parser.add_argument("--model_name", type=str, default="intfloat/multilingual-e5-base", help="基础模型名称")
-    parser.add_argument("--corpus_path", type=str, default="datasets/miracl/zh/train/corpus.jsonl", help="语料库路径")
+    parser.add_argument("--langs", nargs="+", default=["ar", "bn", "en", "es", "fi", "fr", "hi", "id", "ja", "ko", "ru", "sw", "te", "th", "zh", "fa"], help="要处理的语言列表")
     parser.add_argument("--output_dir", type=str, default="project/models/pq_head_initialized", help="输出目录")
     parser.add_argument("--device", type=str, default='0', help="使用设备，如'0'表示cuda:0，'cpu'表示CPU")
-    parser.add_argument("--sample_ratio", type=float, default=1.0, help="语料库采样比例，用于加速处理")
     parser.add_argument("--batch_size", type=int, default=32, help="批处理大小")
     parser.add_argument("--input_dim", type=int, default=768, help="输入嵌入维度")
     parser.add_argument("--num_subvectors", type=int, default=128, help="子向量数量")
     parser.add_argument("--code_size", type=int, default=32, help="码本大小")
+    parser.add_argument("--dataset_split", type=str, default="dev", help="数据集分割，如dev或train")
     
     return parser.parse_args()
+
+def process_language(lang, dataset_split, device, tokenizer, model, batch_size):
+    """处理单个语言的语料库和qrel"""
+    # 定义路径
+    corpus_path = f"datasets/miracl/{lang}/corpus/corpus.jsonl"
+    qrel_path = f"datasets/miracl/{lang}/{dataset_split}/qrels.tsv"
+    
+    # 检查文件是否存在
+    if not os.path.exists(corpus_path):
+        logger.warning(f"语料库文件不存在: {corpus_path}")
+        return None, 0
+    
+    if not os.path.exists(qrel_path):
+        logger.warning(f"qrel文件不存在: {qrel_path}")
+        return None, 0
+    
+    # 加载语料库和qrel
+    corpus_docs = load_corpus(corpus_path)
+    qrel_doc_ids = load_qrels(qrel_path)
+    
+    # 只使用在qrel中出现的文档
+    filtered_docs = []
+    for doc_id in qrel_doc_ids:
+        if doc_id in corpus_docs:
+            filtered_docs.append(corpus_docs[doc_id])
+        else:
+            logger.warning(f"文档ID {doc_id} 在语料库中不存在")
+    
+    doc_count = len(filtered_docs)
+    logger.info(f"从 {len(corpus_docs)} 个文档中筛选出 {doc_count} 个在qrel中使用的文档")
+    
+    if not filtered_docs:
+        logger.error(f"语言 {lang} 没有找到符合条件的文档，跳过")
+        return None, 0
+    
+    # 获取文档嵌入向量
+    embeddings = batch_encode_texts(filtered_docs, tokenizer, model, device, batch_size)
+    logger.info(f"获取了 {embeddings.shape[0]} 个文档的嵌入向量，每个维度 {embeddings.shape[1]}")
+    
+    return embeddings, doc_count
 
 def main():
     args = parse_args()
@@ -121,19 +186,43 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     model.eval()
     
-    # 加载语料库
-    documents = load_corpus(args.corpus_path)
+    # 从所有语言收集嵌入向量
+    all_embeddings = []
+    total_docs = 0
     
-    # 获取文档嵌入向量
-    embeddings = batch_encode_texts(documents, tokenizer, model, device, args.batch_size)
-    logger.info(f"获取了 {embeddings.shape[0]} 个文档的嵌入向量，每个维度 {embeddings.shape[1]}")
+    for lang in args.langs:
+        if lang not in ALL_LANGUAGES:
+            logger.warning(f"不支持的语言: {lang}，跳过")
+            continue
+            
+        logger.info(f"处理语言: {lang}")
+        lang_embeddings, doc_count = process_language(
+            lang, 
+            args.dataset_split, 
+            device, 
+            tokenizer, 
+            model, 
+            args.batch_size
+        )
+        
+        if lang_embeddings is not None and doc_count > 0:
+            all_embeddings.append(lang_embeddings)
+            total_docs += doc_count
+    
+    if not all_embeddings:
+        logger.error("没有找到任何符合条件的文档，无法进行编码和初始化")
+        return
+    
+    # 合并所有语言的嵌入向量
+    combined_embeddings = torch.cat(all_embeddings, dim=0)
+    logger.info(f"合并了所有语言的嵌入向量，总共 {combined_embeddings.shape[0]} 个文档")
     
     # 计算子向量维度
     subvector_dim = args.input_dim // args.num_subvectors
     
     # 使用K-means初始化码本
     codebooks = kmeans_initialize_codebooks(
-        embeddings, 
+        combined_embeddings, 
         args.num_subvectors, 
         args.code_size, 
         subvector_dim

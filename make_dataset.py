@@ -216,7 +216,7 @@ def create_training_data(queries: Dict[str, str], documents: Dict[str, Dict[str,
                     'doc_text': doc_text,
                     'doc_title': doc_title,
                     'sample1': query_text,  # 添加sample1列
-                    'sample2': doc_full_text,  # 添加sample2列
+                    'sample2': doc_text,  # 添加sample2列
                     'query_id': query_id,
                     'doc_id': doc_id,
                     'relevance': relevance

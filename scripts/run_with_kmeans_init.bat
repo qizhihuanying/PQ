@@ -5,10 +5,10 @@ set PYTHON_PATH="C:\Users\QZHYc\Anaconda3\envs\bge\python.exe"
 if not exist %PYTHON_PATH% set PYTHON_PATH="C:\Users\QZHYc\Anaconda3\python.exe"
 
 set MODEL_NAME=intfloat/multilingual-e5-base
-set CORPUS_PATH=datasets/miracl/zh/train/corpus.jsonl
+set LANGS=ar bn en es fi fr hi id ja ko ru sw te th zh fa
 set INPUT_DIM=768
-set LANGS=zh
 set LOG_DIR=logs/dpq_kmeans_init_attention_no_norm
+set DATASET_SPLIT=dev
 
 set SV_OPTIONS=256
 set CS_OPTIONS=64
@@ -22,14 +22,14 @@ for %%a in (0 1) do (
 
                 @REM %PYTHON_PATH% init_codebooks.py ^
                 @REM     --model_name "%MODEL_NAME%" ^
-                @REM     --corpus_path "%CORPUS_PATH%" ^
+                @REM     --langs %LANGS% ^
                 @REM     --output_dir "project/models/pq_head_kmeans_init" ^
                 @REM     --device 0 ^
-                @REM     --sample_ratio 1.0 ^
                 @REM     --batch_size 32 ^
                 @REM     --input_dim %INPUT_DIM% ^
                 @REM     --num_subvectors %%s ^
-                @REM     --code_size %%c
+                @REM     --code_size %%c ^
+                @REM     --dataset_split "%DATASET_SPLIT%"
 
                 %PYTHON_PATH% main.py ^
                     --local_model_names "%MODEL_NAME%" ^
