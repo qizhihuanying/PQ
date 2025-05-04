@@ -1,41 +1,36 @@
 import torch
-import sys
+from pathlib import Path
 
-def view_pt_file(file_path):
-    try:
-        # 加载 pt 文件内容，使用 CPU 加载，避免 GPU 环境限制
-        data = torch.load(file_path, map_location=torch.device('cpu'))
-    except Exception as e:
-        print("加载 pt 文件时出错:", e)
+def print_codebooks(init_pq_path):
+    # 确保提供的路径存在
+    init_pq_path = Path(init_pq_path)
+    if not init_pq_path.exists():
+        print(f"错误：文件 {init_pq_path} 不存在")
         return
 
-    # 输出数据的基本信息
-    print("数据类型:", type(data))
+    # 加载检查点
+    checkpoint = torch.load(init_pq_path, map_location='cpu')
     
-    # 如果数据是字典，则逐键打印
-    if isinstance(data, dict):
-        print("字典键:")
-        for key, value in data.items():
-            print(f"  键: {key}，类型: {type(value)}")
-            # 如果值是 tensor，显示其形状和部分数据
-            if torch.is_tensor(value):
-                print(f"    张量形状: {value.size()}")
-                # 显示前几个数值
-                print("    数值预览:", value.flatten()[:10])
-            else:
-                print("    内容预览:", value)
+    # 检查是否有 'codebooks' 键
+    if 'codebooks' in checkpoint:
+        codebooks = checkpoint['codebooks']
+        print("Codebooks 值：")
+        print(codebooks)
+        
+        # 打印更多详细信息（形状、类型等）
+        if isinstance(codebooks, torch.Tensor):
+            print(f"形状: {codebooks.shape}")
+            print(f"数据类型: {codebooks.dtype}")
+        elif isinstance(codebooks, list):
+            print(f"列表长度: {len(codebooks)}")
+            for i, cb in enumerate(codebooks):
+                print(f"Codebook {i} 形状: {cb.shape}, 数据类型: {cb.dtype}")
     else:
-        # 如果数据不是字典，则直接打印
-        print("数据内容:")
-        print(data)
+        print("检查点中未找到 'codebooks' 键")
+        print("可用键：", list(checkpoint.keys()))
 
-def main():
-    if len(sys.argv) != 2:
-        print("用法: python view_pt.py <file.pt>")
-        sys.exit(1)
-    
-    file_path = sys.argv[1]
-    view_pt_file(file_path)
+# 从你的代码中获取 init_pq_path
+init_pq_path = "project/models/pq_head_kmeans_init/pq_head_best.pt"
 
-if __name__ == "__main__":
-    main()
+# 调用函数
+print_codebooks(init_pq_path)

@@ -121,7 +121,7 @@ def parse_args():
     parser.add_argument("--input_dim", type=int, default=768, help="输入嵌入维度")
     parser.add_argument("--num_subvectors", type=int, default=128, help="子向量数量")
     parser.add_argument("--code_size", type=int, default=32, help="码本大小")
-    parser.add_argument("--dataset_split", type=str, default="dev", help="数据集分割，如dev或train")
+    parser.add_argument("--dataset_split", type=str, default="train", help="数据集分割，如dev或train")
     
     return parser.parse_args()
 
@@ -240,9 +240,15 @@ def main():
     pq_head = update_pq_head_codebooks(pq_head, codebooks)
     
     # 保存初始化的模型
-    output_path = Path(args.output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    model_name_short = args.model_name.split("/")[-1]
+    output_dir = Path(f"{args.output_dir}/{model_name_short}")
+    output_dir.mkdir(parents=True, exist_ok=True)
     
+    # 创建包含参数信息的文件名
+    model_file_name = f"pq_head_cs{args.code_size}_ns{args.num_subvectors}.pt"
+    output_path = output_dir / model_file_name
+    
+    # 保存模型
     pq_head.save_model(output_path)
     logger.info(f"已保存初始化的PQ模型到: {output_path}")
 
