@@ -30,7 +30,8 @@ class MultiModelTrainer:
         logger = None,
         attention_hidden_dim: int = 64,
         attention_lr: float = None,
-        num_attention_heads: int = 4
+        num_attention_heads: int = 4,
+        use_attention: bool = True
     ):
         self.models = models
         self.tokenizers = tokenizers
@@ -71,7 +72,8 @@ class MultiModelTrainer:
             use_pq=use_pq,
             init_codebooks=init_codebooks,
             attention_hidden_dim=attention_hidden_dim,
-            num_attention_heads=num_attention_heads
+            num_attention_heads=num_attention_heads,
+            use_attention=use_attention
         ).to(device)
         
         self.cos_criterion = nn.CosineEmbeddingLoss()
@@ -87,15 +89,15 @@ class MultiModelTrainer:
             for model in self.models:
                 main_params.extend(filter(lambda p: p.requires_grad, model.parameters()))
         
-        # 排除 attention 参数
-        attention_params = list(self.pq_head.attention.parameters())
-        attention_param_ids = [id(p) for p in attention_params]
-        main_params = [p for p in main_params if id(p) not in attention_param_ids]
+        # 排除 bias_module 参数
+        bias_module_params = list(self.pq_head.bias_module.parameters())
+        bias_module_param_ids = [id(p) for p in bias_module_params]
+        main_params = [p for p in main_params if id(p) not in bias_module_param_ids]
         
-        self.logger.info(f"为注意力机制设置单独的学习率: {attention_lr}")
+        self.logger.info(f"为偏置模块设置单独的学习率: {attention_lr}")
         self.optimizer = optim.Adam([
             {"params": main_params, "lr": lr},
-            {"params": attention_params, "lr": attention_lr}
+            {"params": bias_module_params, "lr": attention_lr}
         ], weight_decay=l2)
 
     def _prepare_model_for_training(self, model, num_trainable_layers):
@@ -176,7 +178,7 @@ class MultiModelTrainer:
                                 # 获取样本的子向量
                                 subvectors = emb1[j].reshape(1, self.pq_head.num_subvectors, self.pq_head.subvector_dim)
                                 # 计算bias
-                                bias = self.pq_head.attention(subvectors)
+                                bias = self.pq_head.bias_module(subvectors)
                                 # 计算原始范数和bias范数
                                 original_norm = torch.norm(subvectors).item()
                                 bias_norm = torch.norm(bias).item()
@@ -370,7 +372,8 @@ def train(
     logger = None,
     attention_hidden_dim: int = 64,
     attention_lr: float = None,
-    num_attention_heads: int = 4
+    num_attention_heads: int = 4,
+    use_attention: bool = True
 ):
     """训练主函数"""
     if device is None:
@@ -392,7 +395,8 @@ def train(
         logger=logger,
         attention_hidden_dim=attention_hidden_dim,
         attention_lr=attention_lr,
-        num_attention_heads=num_attention_heads
+        num_attention_heads=num_attention_heads,
+        use_attention=use_attention
     )
     
     trainer.train_pq_head(

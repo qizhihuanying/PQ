@@ -1,137 +1,104 @@
 #!/usr/bin/env bash
+# PQ量化模型训练实验脚本（方案一: 动态分配 GPU）
 
 # 创建基本目录
-mkdir -p logs/dpq_kmeans_init_multiattention
+mkdir -p logs/pq_experiments_attn
 
 # 配置参数
 MODEL_NAME="intfloat/multilingual-e5-base"
-LANGS="ar bn en es fi fr hi id ja ko ru sw te th zh fa"
 INPUT_DIM=768
-LOG_DIR="logs/dpq_kmeans_init_multiattention"
-DATASET_SPLIT="dev"
+LOG_DIR="logs/pq_experiments_attn"
 
-# 定义参数数组 - 保持原始配置
-GPU_IDS=(7 3 3 3 3)
+# 定义 GPU 列表和每卡最大并发数
+GPUS=(3)
+MAX_PARALLEL=1
+
+# 参数数组
 SVS=(256)
 CSS=(64)
-ATTENTION_LRS=(1e-6 5e-6 1e-5 5e-5 1e-4)
-LRS=(2e-5)
-ATTENTION_HEADS=(4 8 16 32)
+# 固定学习率和L2正则化系数
+LR=3e-5
+L2=1e-7
+# 注意力学习率和头数作为循环参数
+ATTN_LRS=(1e-8)
+HEADS=(32)
 
-# 获取唯一的GPU ID
-unique_gpus=($(echo "${GPU_IDS[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+# 初始化并发计数和 PID 映射
+declare -A gpu_load
+declare -A pid2gpu
+for gpu in "${GPUS[@]}"; do
+    gpu_load[$gpu]=0
+done
 
-# 每个GPU最多同时运行的任务数
-MAX_TASKS_PER_GPU=4
+# 启动实验函数
+start_experiment() {
+    local sv=$1 cs=$2 attn_lr=$3 heads=$4 gpu=$5
+    local EXP_NAME="sv=${sv}+cs=${cs}+attn_lr=${attn_lr}+heads=${heads}"
+    local OUTPUT_DIR="project/models/pq_trained/${EXP_NAME}"
+    local LOG_FILE="pq_experiment_${EXP_NAME}.log"
+    mkdir -p "$OUTPUT_DIR"
+    echo "在 GPU $gpu 上启动实验: sv=$sv, cs=$cs, attn_lr=$attn_lr, heads=$heads"
+    (
+        export CUDA_VISIBLE_DEVICES=$gpu
+        python main.py \
+            --local_model_names "$MODEL_NAME" \
+            --output_dir "$OUTPUT_DIR" \
+            --device 0 \
+            --epochs 5 \
+            --lr "$LR" \
+            --l2 "$L2" \
+            --batch_size 128 \
+            --use_pq \
+            --input_dim "$INPUT_DIM" \
+            --num_subvectors "$sv" \
+            --init_pq_path "project/models/pq_head_kmeans_init/pq_head_best.pt" \
+            --code_size "$cs" \
+            --attention_lr "$attn_lr" \
+            --num_attention_heads "$heads" \
+            --log_dir "$LOG_DIR" \
+            --log_file "$LOG_FILE" \
+            --attention_hidden_dim 256
+    ) &
+    local pid=$!
+    pid2gpu[$pid]=$gpu
+    gpu_load[$gpu]=$((gpu_load[$gpu] + 1))
+}
 
-# 生成所有参数组合
-combinations=()
+# 检查并回收资源的函数
+wait_for_available_gpu() {
+    while true; do
+        for pid in "${!pid2gpu[@]}"; do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                finished_gpu=${pid2gpu[$pid]}
+                gpu_load[$finished_gpu]=$((gpu_load[$finished_gpu] - 1))
+                unset pid2gpu[$pid]
+                return
+            fi
+        done
+        sleep 1
+    done
+}
+
+# 循环提交任务
 for sv in "${SVS[@]}"; do
     for cs in "${CSS[@]}"; do
-        for attn_lr in "${ATTENTION_LRS[@]}"; do
-            for lr in "${LRS[@]}"; do
-                for num_heads in "${ATTENTION_HEADS[@]}"; do
-                    combinations+=("$sv $cs $attn_lr $lr $num_heads")
+        for attn_lr in "${ATTN_LRS[@]}"; do
+            for heads in "${HEADS[@]}"; do
+                while :; do
+                    for gpu in "${GPUS[@]}"; do
+                        if (( gpu_load[$gpu] < MAX_PARALLEL )); then
+                            selected_gpu=$gpu
+                            break 2
+                        fi
+                    done
+                    # 等待某个 GPU 空出来
+                    wait_for_available_gpu
                 done
+
+                # 启动实验
+                start_experiment $sv $cs $attn_lr $heads $selected_gpu
             done
         done
-    done
-done
-
-# 为每个GPU创建任务队列
-declare -A gpu_tasks
-for gpu_id in "${unique_gpus[@]}"; do
-    gpu_tasks[$gpu_id]=0  # 初始化每个GPU的运行任务计数为0
-done
-
-# 处理所有组合
-total_combinations=${#combinations[@]}
-processed=0
-
-echo "总共需要处理 $total_combinations 个参数组合"
-
-while [ $processed -lt $total_combinations ]; do
-    for gpu_id in "${unique_gpus[@]}"; do
-        # 检查此GPU上运行的任务数量
-        current_tasks=${gpu_tasks[$gpu_id]}
-        
-        # 如果此GPU可以运行更多任务，且还有组合需要处理
-        if [ $current_tasks -lt $MAX_TASKS_PER_GPU ] && [ $processed -lt $total_combinations ]; then
-            # 获取当前组合
-            combination=${combinations[$processed]}
-            read -r sv cs attn_lr lr num_heads <<< "$combination"
-            
-            # 为每个参数组合创建唯一目录
-            EXPERIMENT_NAME="sv${sv}_cs${cs}_lr${lr}_attn_lr${attn_lr}_heads${num_heads}"
-            INIT_DIR="project/models/pq_head_kmeans_init/${EXPERIMENT_NAME}"
-            OUTPUT_DIR="project/models/pq_head_kmeans_trained/${EXPERIMENT_NAME}"
-            log_filename="kmeans_init_${EXPERIMENT_NAME}.log"
-            
-            # 创建实验目录
-            mkdir -p "$INIT_DIR"
-            mkdir -p "$OUTPUT_DIR"
-
-            # 生成一个临时标记文件，用于跟踪进程
-            task_id="task_${gpu_id}_${processed}"
-            flag_file="/tmp/${task_id}.running"
-            touch "$flag_file"
-
-            # 后台启动任务
-            (
-                echo "在设备 $gpu_id 上启动实验: sv=$sv, cs=$cs, lr=$lr, attention_lr=$attn_lr, attention_heads=$num_heads"
-                
-                # python init_codebooks.py \
-                #     --model_name "$MODEL_NAME" \
-                #     --langs $LANGS \
-                #     --output_dir "$INIT_DIR" \
-                #     --device "$gpu_id" \
-                #     --batch_size 32 \
-                #     --input_dim "$INPUT_DIM" \
-                #     --num_subvectors "$sv" \
-                #     --code_size "$cs" \
-                #     --dataset_split "$DATASET_SPLIT"
-
-                python main.py \
-                    --local_model_names "$MODEL_NAME" \
-                    --output_dir "$OUTPUT_DIR" \
-                    --device "$gpu_id" \
-                    --epochs 20 \
-                    --lr "$lr" \
-                    --attention_lr "$attn_lr" \
-                    --num_attention_heads "$num_heads" \
-                    --l2 0.0 \
-                    --batch_size 32 \
-                    --use_pq \
-                    --input_dim "$INPUT_DIM" \
-                    --num_subvectors "$sv" \
-                    --code_size "$cs" \
-                    --langs "$LANGS" \
-                    --init_pq_path "project/models/pq_head_kmeans_init/pq_head_best.pt" \
-                    --log_dir "$LOG_DIR" \
-                    --log_file "$log_filename"
-                
-                # 任务完成后删除标记文件
-                rm -f "$flag_file"
-                echo "设备 $gpu_id 上的实验已完成: sv=$sv, cs=$cs, lr=$lr, attention_lr=$attn_lr, attention_heads=$num_heads"
-            ) &
-            
-            # 更新任务计数
-            gpu_tasks[$gpu_id]=$((current_tasks + 1))
-            echo "设备 $gpu_id 上添加了新任务，当前任务数: ${gpu_tasks[$gpu_id]}/$MAX_TASKS_PER_GPU"
-            
-            # 更新已处理的组合数
-            processed=$((processed+1))
-        fi
-    done
-    
-    # 等待片刻，给进程一些时间来完成
-    sleep 5
-    
-    # 更新每个GPU的任务计数
-    for gpu_id in "${unique_gpus[@]}"; do
-        # 计算此GPU上正在运行的任务数
-        running_count=$(ls /tmp/task_${gpu_id}_*.running 2>/dev/null | wc -l)
-        gpu_tasks[$gpu_id]=$running_count
     done
 done
 
