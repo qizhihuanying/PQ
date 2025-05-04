@@ -65,6 +65,7 @@ def parse_args():
     parser.add_argument("--attention_hidden_dim", type=int, default=256, help="注意力机制隐藏维度")
     parser.add_argument("--attention_lr", type=float, default=0, help="注意力机制专用学习率，若不设置则使用全局学习率")
     parser.add_argument("--num_attention_heads", type=int, default=4, help="多头注意力的头数")
+    parser.add_argument("--use_attention", action="store_true", default=False, help="使用注意力机制计算偏置，否则使用线性层")
     
     return parser.parse_args()
 
@@ -202,6 +203,11 @@ def get_unique_model_path(args):
             params.append(f"pq-dim{args.input_dim}")
             params.append(f"sv{args.num_subvectors}")
             params.append(f"cs{args.code_size}")
+            # 添加是否使用注意力机制的信息
+            if args.use_attention:
+                params.append(f"attn-h{args.attention_hidden_dim}-heads{args.num_attention_heads}")
+            else:
+                params.append(f"linear-h{args.attention_hidden_dim}")
         else:
             params.append("no-pq")
         
@@ -271,7 +277,8 @@ def main():
         logger=logger,
         attention_hidden_dim=args.attention_hidden_dim,
         attention_lr=args.attention_lr,
-        num_attention_heads=args.num_attention_heads
+        num_attention_heads=args.num_attention_heads,
+        use_attention=args.use_attention
     )
 
 if __name__ == "__main__":
