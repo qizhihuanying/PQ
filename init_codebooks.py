@@ -69,7 +69,7 @@ def batch_encode_texts(texts, tokenizer, model, device, batch_size=32):
     
     for i in tqdm(range(0, len(texts), batch_size), desc="编码文档"):
         batch_texts = texts[i:i+batch_size]
-        encoded = tokenizer(batch_texts, padding=True, truncation=True, return_tensors="pt").to(device)
+        encoded = tokenizer(batch_texts, padding=True, truncation=True, max_length=512, return_tensors="pt").to(device)
         with torch.no_grad():
             output = model(**encoded)
             embeddings = torch.nn.functional.normalize(output[0][:, 0], p=2, dim=1)

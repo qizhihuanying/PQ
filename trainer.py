@@ -120,7 +120,7 @@ class MultiModelTrainer:
             model = self.models[model_idx]
             tokenizer = self.tokenizers[model_idx]
             
-            enc = tokenizer(texts, padding=True, truncation=True, return_tensors="pt").to(self.device)
+            enc = tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt").to(self.device)
             with torch.no_grad():
                 out = model(**enc)
                 emb = torch.nn.functional.normalize(out[0][:, 0], p=2, dim=1)

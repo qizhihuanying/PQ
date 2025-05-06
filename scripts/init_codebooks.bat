@@ -8,6 +8,6 @@ if not exist %PYTHON_PATH% set PYTHON_PATH="C:\Users\QZHYc\Anaconda3\python.exe"
     --num_subvectors 256 ^
     --code_size 64 ^
     --device 0 ^
-    --batch_size 32 ^
+    --batch_size 16 ^
     --langs ar bn en es fi fr hi id ja ko ru sw te th zh fa ^
     --dataset_split train

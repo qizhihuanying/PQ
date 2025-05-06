@@ -167,7 +167,7 @@ def prepare_data(args):
     
     # 训练集采样
     if args.train_sample_ratio < 1.0:
-        train_size = max(1, int(len(full_train_data) * args.train_sample_ratio))
+        train_size = int(len(full_train_data) * args.train_sample_ratio)
         train_data = full_train_data.sample(n=train_size)
     else:
         train_data = full_train_data

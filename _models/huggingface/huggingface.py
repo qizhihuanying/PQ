@@ -85,6 +85,7 @@ def get_huggingface_embeddings_batched(
             batch,
             padding=True,
             truncation=True,
+            max_length=512,
             return_tensors="pt",
             pad_to_multiple_of=8,
         ).to(device)
@@ -106,7 +107,7 @@ def get_huggingface_embedding(prompt: str, model: str = "BAAI/bge-small-en-v1.5"
     model, tokenizer = load_model(model)
     model = model.to(device)
 
-    encoded_input = tokenizer(prompt, padding=True, truncation=True, return_tensors="pt").to(device)
+    encoded_input = tokenizer(prompt, padding=True, truncation=True, max_length=512, return_tensors="pt").to(device)
 
     with torch.no_grad():
         model_output = model(**encoded_input)
