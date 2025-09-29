@@ -7,15 +7,16 @@ import pickle
 import argparse
 import json
 import requests
+import gzip
 from typing import Dict, List, Tuple
-import datasets
-from datasets import load_dataset
+# 延迟导入 HuggingFace datasets（避免被本地 datasets 目录遮蔽）
 import random
 
 # 支持的语言定义
 SURPRISE_LANGUAGES = ['de', 'yo']
+BASE_LANGUAGES = ['ar', 'bn', 'en', 'es', 'fa', 'fi', 'fr', 'hi', 'id', 'ja', 'ko', 'ru', 'sw', 'te', 'th', 'zh']
 NEW_LANGUAGES = ['es', 'fa', 'fr', 'hi', 'zh'] + SURPRISE_LANGUAGES
-ALL_LANGUAGES = ['es', 'fa', 'fi', 'fr', 'hi', 'id', 'ja', 'ko', 'ru', 'sw', 'te', 'th', 'zh'] + SURPRISE_LANGUAGES
+ALL_LANGUAGES = BASE_LANGUAGES + SURPRISE_LANGUAGES
 
 # 数据集URL定义
 DATASET_URLS = {
@@ -38,11 +39,13 @@ for lang in ALL_LANGUAGES:
             f'https://huggingface.co/datasets/miracl/miracl/resolve/main/miracl-v1.0-{lang}/qrels/qrels.miracl-v1.0-{lang}-train.tsv',
         ]
 
-def download_file(url, output_path):
+def download_file(url, output_path, force_download=False):
     """下载文件到指定路径"""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     if os.path.exists(output_path):
-        return output_path
+        if not force_download:
+            return output_path
+        os.remove(output_path)
     
     print(f"下载文件: {url}")
     response = requests.get(url)
@@ -89,53 +92,111 @@ def load_qrels(fn):
         print(f"加载相关性文件失败: {fn}, 错误: {e}")
         return None
 
-def download_corpus(lang, base_path):
-    """下载并保存语料库到本地"""
-    corpus_dir = base_path / "corpus"
-    corpus_file = corpus_dir / "corpus.jsonl"
-    corpus_dir.mkdir(parents=True, exist_ok=True)
-    
-    if corpus_file.exists():
-        print(f"语料库已存在于: {corpus_file}")
-        return corpus_file
-    
-    print(f"下载 {lang} 语言的语料库...")
+def parse_topic_text(text: str) -> Dict[str, str]:
+    """从文本内容解析 topics TSV 为 {qid: topic}."""
+    qid2topic: Dict[str, str] = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split('\t')
+        if len(parts) >= 2:
+            qid, topic = parts[0], parts[1]
+            qid2topic[qid] = topic
+    return qid2topic
+
+def parse_qrels_text(text: str) -> Dict[str, Dict[str, int]]:
+    """从文本内容解析 qrels TSV 为 {qid: {docid: rel}}."""
+    qrels: Dict[str, Dict[str, int]] = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            qid, _, docid, rel = line.split('\t')
+        except ValueError:
+            continue
+        qrels.setdefault(qid, {})[docid] = int(rel)
+    return qrels
+
+def download_corpus(lang, base_path, force_download=False):
+    """获取语料库句柄：优先使用本地分片目录，否则以 HF 流式方式返回数据集对象。
+    不会在 datasets/miracl 或 datasets/miracl-corpus 下写入任何新文件。
+    """
+    local_shard_dir = Path(f"datasets/miracl-corpus/miracl-corpus-v1.0-{lang}")
+    if local_shard_dir.exists() and local_shard_dir.is_dir():
+        shard_files = list(local_shard_dir.glob("docs-*.jsonl.gz"))
+        print(f"使用本地分片: {local_shard_dir} ({len(shard_files)} 个文件)")
+        if not shard_files:
+            print(f"警告: {local_shard_dir} 中未找到 docs-*.jsonl.gz 文件")
+        return local_shard_dir
+
+    print(f"尝试通过 HuggingFace 数据集流式读取 {lang} 语料库（不落盘）...")
     try:
-        # 使用Hugging Face API下载语料库
-        corpus = datasets.load_dataset('miracl/miracl-corpus', lang, trust_remote_code=True)['train']
-        
-        # 保存到本地JSONL文件
-        with open(corpus_file, "w", encoding="utf-8") as f:
-            for doc in tqdm(corpus, desc=f"保存 {lang} 语料库"):
-                doc_data = {
-                    "docid": str(doc['docid']),
-                    "title": doc['title'] if 'title' in doc else "",
-                    "text": doc['text']
-                }
-                f.write(json.dumps(doc_data, ensure_ascii=False) + "\n")
-        
-        print(f"语料库已保存到: {corpus_file}")
-        return corpus_file
+        import importlib
+        hf_datasets = importlib.import_module('datasets')
+        load_dataset = getattr(hf_datasets, 'load_dataset', None)
+        if load_dataset is None:
+            raise ImportError("本地 datasets 目录遮蔽了 HuggingFace datasets 库，无法找到 load_dataset")
+
+        corpus = load_dataset('miracl/miracl-corpus', lang, trust_remote_code=True)['train']
+        return corpus
     except Exception as e:
         print(f"下载语料库失败: {e}")
+        if local_shard_dir.exists() and local_shard_dir.is_dir():
+            print("回退到现有的本地分片")
+            return local_shard_dir
         return None
 
-def load_corpus(corpus_file):
-    """从本地文件加载语料库"""
+def load_corpus(corpus_source, lang=None):
+    """从本地 JSONL 或分片目录加载语料库"""
     documents = {}
+
     try:
-        with open(corpus_file, "r", encoding="utf-8") as f:
+        if corpus_source is None:
+            return documents
+
+        # HF 数据集对象：直接迭代（避免写盘）
+        if not isinstance(corpus_source, (str, os.PathLike, Path)):
+            for doc in tqdm(corpus_source, desc=f"加载语料库({lang or 'hf'})"):
+                doc_id = str(doc.get('docid'))
+                documents[doc_id] = {
+                    "title": doc.get('title', ""),
+                    "text": doc['text']
+                }
+            return documents
+
+        corpus_path = Path(corpus_source)
+        if corpus_path.is_dir():
+            gz_files = sorted(corpus_path.glob("docs-*.jsonl.gz"), key=lambda p: p.name)
+            if not gz_files:
+                print(f"警告: {corpus_path} 中未找到 docs-*.jsonl.gz 文件")
+                return documents
+
+            for gz_file in tqdm(gz_files, desc=f"加载语料库({lang or corpus_path.name})"):
+                with gzip.open(gz_file, "rt", encoding="utf-8") as f:
+                    for line in f:
+                        doc = json.loads(line.strip())
+                        doc_id = str(doc['docid'])
+                        documents[doc_id] = {
+                            "title": doc.get('title', ""),
+                            "text": doc['text']
+                        }
+            return documents
+
+        with open(corpus_path, "r", encoding="utf-8") as f:
             for line in tqdm(f, desc="加载语料库"):
                 doc = json.loads(line.strip())
                 doc_id = str(doc['docid'])
                 documents[doc_id] = {
-                    "title": doc['title'],
+                    "title": doc.get('title', ""),
                     "text": doc['text']
                 }
         return documents
     except Exception as e:
-        print(f"加载语料库失败: {corpus_file}, 错误: {e}")
+        print(f"加载语料库失败: {corpus_source}, 错误: {e}")
         return {}
+
 
 def load_miracl_data(lang: str, split: str = "dev", force_download: bool = False) -> Tuple[Dict[str, str], Dict[str, Dict[str, str]], Dict[str, Dict[str, int]]]:
     """
@@ -151,8 +212,7 @@ def load_miracl_data(lang: str, split: str = "dev", force_download: bool = False
         documents: 文档字典 {doc_id: {"title": title, "text": text}}
         qrels: 相关性字典 {query_id: {doc_id: relevance}}
     """
-    base_path = Path(f"datasets/miracl/{lang}/{split}")
-    base_path.mkdir(parents=True, exist_ok=True)
+    # 不在 miracl/ 下创建任何新目录，topics/qrels 直接按现有 MIRACL 结构读取
     
     # 检查是否有链接可用
     if lang not in ALL_LANGUAGES:
@@ -162,20 +222,30 @@ def load_miracl_data(lang: str, split: str = "dev", force_download: bool = False
         raise ValueError(f"语言 {lang} 不支持数据集拆分: {split}")
     
     # 下载或加载文件
+    # 优先读取本地 MIRACL 目录结构（datasets/miracl/miracl-v1.0-<lang>）
+    miracl_lang_dir = Path(f"datasets/miracl/miracl-v1.0-{lang}")
     urls = DATASET_URLS[lang][split]
-    topic_fn = download_file(urls[0], str(base_path / "topics.tsv"))
-    qrel_fn = None if len(urls) < 2 else download_file(urls[1], str(base_path / "qrels.tsv"))
+    topic_local = miracl_lang_dir / "topics" / f"topics.miracl-v1.0-{lang}-{split}.tsv"
+    qrels_local = miracl_lang_dir / "qrels" / f"qrels.miracl-v1.0-{lang}-{split}.tsv"
     
-    # 加载查询
-    queries = load_topic(topic_fn)
+    if topic_local.exists():
+        queries = load_topic(topic_local)
+    else:
+        resp = requests.get(urls[0])
+        queries = parse_topic_text(resp.text) if resp.status_code == 200 else {}
     
-    # 加载相关性
-    qrels = load_qrels(qrel_fn)
+    if len(urls) >= 2:
+        if qrels_local.exists():
+            qrels = load_qrels(qrels_local)
+        else:
+            resp = requests.get(urls[1])
+            qrels = parse_qrels_text(resp.text) if resp.status_code == 200 else None
+    else:
+        qrels = None
     
-    # 下载并加载语料库
-    lang_base_path = Path(f"datasets/miracl/{lang}")
-    corpus_file = download_corpus(lang, lang_base_path)
-    documents = load_corpus(corpus_file)
+    # 获取并加载语料库（仅读取，不写入 miracl/ 或 miracl-corpus/）
+    corpus_handle = download_corpus(lang, base_path=None, force_download=force_download)
+    documents = load_corpus(corpus_handle, lang=lang)
     
     print(f"已加载 {lang} 数据集 ({split}): {len(queries)} 查询, {len(documents)} 文档")
     if qrels:
@@ -254,8 +324,8 @@ def process_miracl_dataset(lang_list: List[str] = None, force_download: bool = F
             queries, documents, qrels = load_miracl_data(lang, "dev", force_download=force_download)
             dev_data = create_training_data(queries, documents, qrels)
             
-            # 保存处理后的dev数据
-            dev_dir = Path(f"datasets/miracl/{lang}/dev")
+            # 保存处理后的dev数据（仅写入 datasets/processed）
+            dev_dir = Path(f"datasets/processed/{lang}/dev")
             dev_dir.mkdir(parents=True, exist_ok=True)
             dev_data.to_pickle(dev_dir / "processed_data.pkl")
             
@@ -268,8 +338,8 @@ def process_miracl_dataset(lang_list: List[str] = None, force_download: bool = F
                     train_queries, train_documents, train_qrels = load_miracl_data(lang, "train", force_download=force_download)
                     train_data = create_training_data(train_queries, train_documents, train_qrels)
                     
-                    # 保存处理后的train数据
-                    train_dir = Path(f"datasets/miracl/{lang}/train")
+                    # 保存处理后的train数据（仅写入 datasets/processed）
+                    train_dir = Path(f"datasets/processed/{lang}/train")
                     train_dir.mkdir(parents=True, exist_ok=True)
                     train_data.to_pickle(train_dir / "processed_data.pkl")
                     
@@ -305,7 +375,7 @@ def load_train_dev_data(lang: str, train_sample_ratio: float = 1.0) -> Tuple[pd.
     print(f"加载 {lang} 语言的训练和测试数据...")
     
     # 检查处理好的数据是否存在，不存在则处理
-    dev_data_path = Path(f"datasets/miracl/{lang}/dev/processed_data.pkl")
+    dev_data_path = Path(f"datasets/processed/{lang}/dev/processed_data.pkl")
     if not dev_data_path.exists():
         process_miracl_dataset([lang])
     
@@ -313,7 +383,7 @@ def load_train_dev_data(lang: str, train_sample_ratio: float = 1.0) -> Tuple[pd.
     test_data = pd.read_pickle(dev_data_path)
     
     # 加载训练集
-    train_data_path = Path(f"datasets/miracl/{lang}/train/processed_data.pkl")
+    train_data_path = Path(f"datasets/processed/{lang}/train/processed_data.pkl")
     if not train_data_path.exists():
         process_miracl_dataset([lang])
         if not train_data_path.exists():

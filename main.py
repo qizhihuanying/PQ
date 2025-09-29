@@ -100,8 +100,8 @@ def prepare_data(args):
         lang = args.langs[0]
         
         # 加载数据文件
-        dev_data_path = Path(f"datasets/miracl/{lang}/dev/processed_data.pkl")
-        train_data_path = Path(f"datasets/miracl/{lang}/train/processed_data.pkl")
+        dev_data_path = Path(f"datasets/processed/{lang}/dev/processed_data.pkl")
+        train_data_path = Path(f"datasets/processed/{lang}/train/processed_data.pkl")
         
         if not dev_data_path.exists() or not train_data_path.exists():
             raise FileNotFoundError(f"找不到处理好的{lang}数据文件，请先运行make_dataset.py")
@@ -140,7 +140,7 @@ def prepare_data(args):
     
     for lang in args.langs if args.langs else MIRACL_LANGUAGES:
         # 加载测试数据
-        dev_data_path = Path(f"datasets/miracl/{lang}/dev/processed_data.pkl")
+        dev_data_path = Path(f"datasets/processed/{lang}/dev/processed_data.pkl")
         if dev_data_path.exists():
             dev_data = pd.read_pickle(dev_data_path)
             if 'lang' not in dev_data.columns:
@@ -148,7 +148,7 @@ def prepare_data(args):
             test_frames.append(dev_data)
         
         # 加载训练数据
-        train_data_path = Path(f"datasets/miracl/{lang}/train/processed_data.pkl")
+        train_data_path = Path(f"datasets/processed/{lang}/train/processed_data.pkl")
         if train_data_path.exists():
             train_data = pd.read_pickle(train_data_path)
             if 'lang' not in train_data.columns:

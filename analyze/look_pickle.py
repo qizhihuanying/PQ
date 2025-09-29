@@ -9,7 +9,7 @@ with open(output_file, "w", encoding="utf-8") as f_out:
     f_out.write("=" * 50 + "\n\n")
     
     # 获取所有语言目录
-    language_dirs = glob.glob("datasets/miracl/*/")
+    language_dirs = glob.glob("datasets/processed/*/")
     
     # 遍历每个语言目录
     for lang_dir in language_dirs:
